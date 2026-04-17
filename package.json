@@ -1,0 +1,117 @@
+{
+  "name": "@sourceregistry/mikrotik-client",
+  "version": "1.0.0",
+  "description": "TypeScript-first MikroTik RouterOS client with binary API support.",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./routeros": {
+      "types": "./dist/routeros/index.d.ts",
+      "import": "./dist/routeros/index.js",
+      "require": "./dist/routeros/index.cjs"
+    },
+    "./switchos": {
+      "types": "./dist/switchos/index.d.ts",
+      "import": "./dist/switchos/index.js",
+      "require": "./dist/switchos/index.cjs"
+    },
+    "./experimental": {
+      "types": "./dist/experimental/index.d.ts",
+      "import": "./dist/experimental/index.js",
+      "require": "./dist/experimental/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && vite build",
+    "test": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "lint": "tsc --noEmit",
+    "typecheck:examples": "tsc --noEmit -p tsconfig.examples.json",
+    "docs:build": "typedoc src/index.ts --out docs --name \"mikrotik-client\" --theme default --excludePrivate --excludeProtected",
+    "example:basic": "tsx examples/basic.ts",
+    "example:helpers": "tsx examples/helpers.ts",
+    "example:listen": "tsx examples/listen.ts",
+    "example:network": "tsx examples/network.ts",
+    "example:datacenter-mlag": "tsx examples/datacenter-mlag.ts",
+    "example:multisite-bgp-wireguard": "tsx examples/multisite-bgp-wireguard.ts",
+    "example:datacenter-manager": "tsx examples/datacenter-manager.ts",
+    "example:discover": "tsx examples/discover.ts",
+    "example:fabric-manager": "tsx examples/fabric-manager.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SourceRegistry/mikrotik-client.git"
+  },
+  "keywords": [
+    "mikrotik",
+    "routeros",
+    "switchos",
+    "api",
+    "typescript"
+  ],
+  "author": "A.P.A. Slaa (a.p.a.slaa@projectsource.nl)",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/SourceRegistry/mikrotik-client/issues"
+  },
+  "homepage": "https://github.com/SourceRegistry/mikrotik-client",
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/npm": "^13.1.5",
+    "@semantic-release/release-notes-generator": "^14.0.3",
+    "@sourceregistry/semantic-release-jsr": "^1.0.1",
+    "@types/node": "^25.3.3",
+    "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/ui": "^4.0.18",
+    "tsx": "^4.20.6",
+    "typedoc": "^0.28.17",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^4.0.18"
+  },
+  "release": {
+    "branches": [
+      "main"
+    ],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/changelog",
+      "@semantic-release/npm",
+      "@sourceregistry/semantic-release-jsr",
+      [
+        "@semantic-release/git",
+        {
+          "assets": [
+            "package.json",
+            "package-lock.json",
+            "jsr.json",
+            "CHANGELOG.md"
+          ],
+          "message": "mikrotik-client(release): v${nextRelease.version}\n\n${nextRelease.notes}"
+        }
+      ]
+    ]
+  }
+}

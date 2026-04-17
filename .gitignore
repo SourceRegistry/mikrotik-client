@@ -1,0 +1,8 @@
+dist
+node_modules
+.idea
+.vscode
+.env
+*.env
+!example.env
+SKILL.md
