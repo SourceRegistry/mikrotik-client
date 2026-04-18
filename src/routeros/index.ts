@@ -67,7 +67,9 @@ export type RouterOSClientOptions = {
   tlsOptions?: tls.ConnectionOptions;
 };
 
-export type RouterOSApiBranch = Record<string, unknown> & {
+export type RouterOSApiBranch = {
+  [segment: string]: RouterOSApiBranch;
+} & {
   path: (segment: string) => RouterOSApiBranch;
   call: (options?: RouterOSCommandOptions) => Promise<RouterOSCommandResult>;
   print: (options?: RouterOSCommandOptions) => Promise<RouterOSRecord[]>;
@@ -338,6 +340,7 @@ export class RouterOSClient {
   public readonly interface: RouterOSHelpers["interface"];
   public readonly bridge: RouterOSHelpers["bridge"];
   public readonly ip: RouterOSHelpers["ip"];
+  public readonly ipv6: RouterOSHelpers["ipv6"];
   public readonly wireguard: RouterOSHelpers["wireguard"];
   public readonly ppp: RouterOSHelpers["ppp"];
   public readonly routing: RouterOSHelpers["routing"];
@@ -349,6 +352,7 @@ export class RouterOSClient {
     this.interface = helpers.interface;
     this.bridge = helpers.bridge;
     this.ip = helpers.ip;
+    this.ipv6 = helpers.ipv6;
     this.wireguard = helpers.wireguard;
     this.ppp = helpers.ppp;
     this.routing = helpers.routing;
@@ -396,10 +400,59 @@ export class RouterOSClient {
         socket: net.Socket | tls.TLSSocket,
         connectEvent: "connect" | "secureConnect"
       ) => {
-        socket.once(connectEvent, () => {
+        let settled = false;
+        const cleanup = () => {
+          if (timer) {
+            clearTimeout(timer);
+          }
+          socket.off(connectEvent, onReady);
+          socket.off("error", onError);
+          socket.off("close", onClose);
+        };
+        const onReady = () => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          cleanup();
           void onConnected(socket);
-        });
-        socket.once("error", reject);
+        };
+        const onError = (error: Error) => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          cleanup();
+          reject(error);
+        };
+        const onClose = () => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          cleanup();
+          reject(new Error("RouterOS connection closed before it was established."));
+        };
+        const timer =
+          this.options.timeoutMs && this.options.timeoutMs > 0
+            ? setTimeout(() => {
+                if (settled) {
+                  return;
+                }
+                settled = true;
+                cleanup();
+                socket.destroy();
+                reject(
+                  new Error(
+                    `RouterOS connection timed out to ${this.options.host}:${this.options.port ?? (this.options.tls ? 8729 : 8728)}`
+                  )
+                );
+              }, this.options.timeoutMs)
+            : undefined;
+
+        socket.once(connectEvent, onReady);
+        socket.once("error", onError);
+        socket.once("close", onClose);
       };
 
       if (this.options.socketFactory) {

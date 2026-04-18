@@ -125,7 +125,7 @@ export class SentenceDecoder {
     private buffer: Buffer = Buffer.alloc(0);
     private currentWords: string[] = [];
 
-    push(chunk: Uint8Array): string[][] {
+    push(chunk: Uint8Array | string): string[][] {
         const chunkBuffer = Buffer.from(chunk);
         this.buffer =
             this.buffer.length === 0

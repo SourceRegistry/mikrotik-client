@@ -14,6 +14,11 @@ export type RouterOSPrintOptions = {
   timeoutMs?: number;
 };
 
+export type RouterOSMonitorOptions = {
+  signal?: AbortSignal;
+  timeoutMs?: number;
+};
+
 export type RouterOSSystemResource = RouterOSRecord & {
   uptime?: string;
   version?: string;
@@ -31,6 +36,21 @@ export type RouterOSIdentity = RouterOSRecord & {
   name?: string;
 };
 
+export type RouterOSPackageUpdateStatus = RouterOSRecord & {
+  channel?: string;
+  status?: string;
+  "installed-version"?: string;
+  "latest-version"?: string;
+};
+
+export type RouterOSRouterboard = RouterOSRecord & {
+  routerboard?: string;
+  model?: string;
+  "current-firmware"?: string;
+  "upgrade-firmware"?: string;
+  "factory-firmware"?: string;
+};
+
 export type RouterOSInterface = RouterOSRecord & {
   ".id"?: string;
   name?: string;
@@ -41,6 +61,18 @@ export type RouterOSInterface = RouterOSRecord & {
   "actual-mtu"?: string;
   macAddress?: string;
   "mac-address"?: string;
+};
+
+export type RouterOSWirelessRegistration = RouterOSRecord & {
+  ".id"?: string;
+  interface?: string;
+  ssid?: string;
+  "mac-address"?: string;
+  uptime?: string;
+  "last-activity"?: string;
+  signal?: string;
+  band?: string;
+  "auth-type"?: string;
 };
 
 export type RouterOSBonding = RouterOSRecord & {
@@ -64,6 +96,54 @@ export type RouterOSIpAddress = RouterOSRecord & {
   comment?: string;
 };
 
+export type RouterOSIpRoute = RouterOSRecord & {
+  ".id"?: string;
+  "dst-address"?: string;
+  gateway?: string;
+  distance?: string;
+  disabled?: string;
+  comment?: string;
+  "routing-table"?: string;
+  vrfInterface?: string;
+  "vrf-interface"?: string;
+};
+
+export type RouterOSDhcpLease = RouterOSRecord & {
+  ".id"?: string;
+  address?: string;
+  "mac-address"?: string;
+  "host-name"?: string;
+  server?: string;
+  status?: string;
+  dynamic?: string;
+  disabled?: string;
+  comment?: string;
+};
+
+export type RouterOSNeighbor = RouterOSRecord & {
+  ".id"?: string;
+  interface?: string;
+  address?: string;
+  address6?: string;
+  "mac-address"?: string;
+  identity?: string;
+  version?: string;
+  board?: string;
+  platform?: string;
+  "discovered-by"?: string;
+  uptime?: string;
+};
+
+export type RouterOSIpsecPeer = RouterOSRecord & {
+  ".id"?: string;
+  name?: string;
+  address?: string;
+  "local-address"?: string;
+  profile?: string;
+  "exchange-mode"?: string;
+  disabled?: string;
+};
+
 export type RouterOSFirewallFilterRule = RouterOSRecord & {
   ".id"?: string;
   chain?: string;
@@ -73,6 +153,26 @@ export type RouterOSFirewallFilterRule = RouterOSRecord & {
   protocol?: string;
   "src-address"?: string;
   "dst-address"?: string;
+};
+
+export type RouterOSIpService = RouterOSRecord & {
+  ".id"?: string;
+  name?: string;
+  port?: string;
+  address?: string;
+  disabled?: string;
+  certificate?: string;
+  vrf?: string;
+  "tls-version"?: string;
+};
+
+export type RouterOSIpv6Neighbor = RouterOSRecord & {
+  ".id"?: string;
+  address?: string;
+  "mac-address"?: string;
+  interface?: string;
+  vrf?: string;
+  router?: string;
 };
 
 export type RouterOSBridge = RouterOSRecord & {
@@ -105,6 +205,47 @@ export type RouterOSBridgeVlan = RouterOSRecord & {
   "vlan-ids"?: string;
   disabled?: string;
   comment?: string;
+};
+
+export type RouterOSBridgeMonitor = RouterOSRecord & {
+  state?: string;
+  "current-mac-address"?: string;
+  "bridge-id"?: string;
+  "root-bridge"?: string;
+  "root-bridge-id"?: string;
+  "regional-root-bridge-id"?: string;
+  "root-path-cost"?: string;
+  "root-port"?: string;
+  "port-count"?: string;
+  "designated-port-count"?: string;
+  "mst-config-digest"?: string;
+  "fast-forward"?: string;
+  "multicast-router"?: string;
+  "igmp-querier"?: string;
+  "mld-querier"?: string;
+  "declared-vlan-ids"?: string;
+  "registered-vlan-ids"?: string;
+};
+
+export type RouterOSBridgePortMonitor = RouterOSRecord & {
+  interface?: string;
+  status?: string;
+  "port-id"?: string;
+  role?: string;
+  "edge-port"?: string;
+  "edge-port-discovery"?: string;
+  "point-to-point-port"?: string;
+  "external-fdb"?: string;
+  "sending-rstp"?: string;
+  learning?: string;
+  forwarding?: string;
+  "actual-path-cost"?: string;
+  "internal-root-path-cost"?: string;
+  "designated-bridge-id"?: string;
+  "designated-port-id"?: string;
+  "designated-remaining-hops"?: string;
+  "declared-vlan-ids"?: string;
+  "registered-vlan-ids"?: string;
 };
 
 export type RouterOSPppSecret = RouterOSRecord & {
@@ -182,6 +323,22 @@ export type RouterOSBgpTemplate = RouterOSRecord & {
   "router-id"?: string;
 };
 
+export type RouterOSLteMonitor = RouterOSRecord & {
+  ".id"?: string;
+  imei?: string;
+  model?: string;
+  manufacturer?: string;
+  revision?: string;
+  "current-operator"?: string;
+  "access-technology"?: string;
+  signal?: string;
+  rssi?: string;
+  rsrp?: string;
+  rsrq?: string;
+  sinr?: string;
+  roaming?: string;
+};
+
 export type RouterOSHelpers = ReturnType<typeof createRouterOSHelpers>;
 
 function toPrintOptions(options: RouterOSPrintOptions = {}): RouterOSCommandOptions {
@@ -194,6 +351,12 @@ function toPrintOptions(options: RouterOSPrintOptions = {}): RouterOSCommandOpti
   };
 }
 
+function toMonitorResult<T extends RouterOSRecord>(
+  result: Awaited<ReturnType<RouterOSClient["execute"]>>
+): T | undefined {
+  return (result.records[0] ?? result.done?.attributes) as T | undefined;
+}
+
 function withId(
   id: string,
   attributes?: Record<string, RouterOSPrimitive>
@@ -204,6 +367,9 @@ function withId(
   };
 }
 
+// Typed helpers are reserved for RouterOS menus and commands with public,
+// documented command paths. Undocumented or model-specific behavior should
+// stay on the raw client surface (`execute`, `print`, `api`) until proven stable.
 export function createRouterOSHelpers(client: RouterOSClient) {
   return {
     system: {
@@ -227,6 +393,55 @@ export function createRouterOSHelpers(client: RouterOSClient) {
             attributes: { name },
           });
         },
+      },
+      package: {
+        update: {
+          async checkForUpdates(
+            options: Omit<RouterOSCommandOptions, "attributes"> = {}
+          ): Promise<RouterOSPackageUpdateStatus | undefined> {
+            const result = await client.execute("/system/package/update/check-for-updates", options);
+            return (result.records[0] ?? result.done?.attributes) as
+              | RouterOSPackageUpdateStatus
+              | undefined;
+          },
+          async install(
+            options: Omit<RouterOSCommandOptions, "attributes"> = {}
+          ): Promise<void> {
+            await client.execute("/system/package/update/install", options);
+          },
+        },
+      },
+      routerboard: {
+        async get(options: RouterOSPrintOptions = {}): Promise<RouterOSRouterboard | undefined> {
+          const records = await client.print("/system/routerboard", toPrintOptions(options));
+          return records[0] as RouterOSRouterboard | undefined;
+        },
+        async upgrade(
+          options: Omit<RouterOSCommandOptions, "attributes"> = {}
+        ): Promise<void> {
+          await client.execute("/system/routerboard/upgrade", options);
+        },
+      },
+      async reboot(
+        options: Omit<RouterOSCommandOptions, "attributes"> = {}
+      ): Promise<void> {
+        await client.execute("/system/reboot", options);
+      },
+      async exportConfig(
+        attributes: {
+          file: string;
+          compact?: boolean;
+          terse?: boolean;
+          verbose?: boolean;
+          "show-sensitive"?: boolean;
+          path?: string;
+        },
+        options: Omit<RouterOSCommandOptions, "attributes"> = {}
+      ): Promise<void> {
+        await client.execute("/export", {
+          ...options,
+          attributes,
+        });
       },
     },
     interface: {
@@ -253,6 +468,43 @@ export function createRouterOSHelpers(client: RouterOSClient) {
           ...options,
           attributes: withId(id, { disabled: true }),
         });
+      },
+      wireless: {
+        registrationTable: {
+          list(options: RouterOSPrintOptions = {}): Promise<RouterOSWirelessRegistration[]> {
+            return client.print(
+              "/interface/wireless/registration-table",
+              toPrintOptions(options)
+            ) as Promise<RouterOSWirelessRegistration[]>;
+          },
+        },
+      },
+      wifi: {
+        registrationTable: {
+          list(options: RouterOSPrintOptions = {}): Promise<RouterOSWirelessRegistration[]> {
+            return client.print(
+              "/interface/wifi/registration-table",
+              toPrintOptions(options)
+            ) as Promise<RouterOSWirelessRegistration[]>;
+          },
+        },
+      },
+      lte: {
+        async monitor(
+          interfaceId: string,
+          options: RouterOSMonitorOptions = {}
+        ): Promise<RouterOSLteMonitor | undefined> {
+          const { signal, timeoutMs } = options;
+          const result = await client.execute("/interface/lte/monitor", {
+            signal,
+            timeoutMs,
+            attributes: {
+              numbers: interfaceId,
+              once: true,
+            },
+          });
+          return toMonitorResult<RouterOSLteMonitor>(result);
+        },
       },
       bonding: {
         list(options: RouterOSPrintOptions = {}): Promise<RouterOSBonding[]> {
@@ -306,6 +558,21 @@ export function createRouterOSHelpers(client: RouterOSClient) {
       list(options: RouterOSPrintOptions = {}): Promise<RouterOSBridge[]> {
         return client.print("/interface/bridge", toPrintOptions(options)) as Promise<RouterOSBridge[]>;
       },
+      async monitor(
+        bridgeId: string,
+        options: RouterOSMonitorOptions = {}
+      ): Promise<RouterOSBridgeMonitor | undefined> {
+        const { signal, timeoutMs } = options;
+        const result = await client.execute("/interface/bridge/monitor", {
+          signal,
+          timeoutMs,
+          attributes: {
+            numbers: bridgeId,
+            once: true,
+          },
+        });
+        return toMonitorResult<RouterOSBridgeMonitor>(result);
+      },
       async add(
         attributes: {
           name: string;
@@ -343,6 +610,21 @@ export function createRouterOSHelpers(client: RouterOSClient) {
       port: {
         list(options: RouterOSPrintOptions = {}): Promise<RouterOSBridgePort[]> {
           return client.print("/interface/bridge/port", toPrintOptions(options)) as Promise<RouterOSBridgePort[]>;
+        },
+        async monitor(
+          portId: string,
+          options: RouterOSMonitorOptions = {}
+        ): Promise<RouterOSBridgePortMonitor | undefined> {
+          const { signal, timeoutMs } = options;
+          const result = await client.execute("/interface/bridge/port/monitor", {
+            signal,
+            timeoutMs,
+            attributes: {
+              numbers: portId,
+              once: true,
+            },
+          });
+          return toMonitorResult<RouterOSBridgePortMonitor>(result);
         },
         async add(
           attributes: {
@@ -411,6 +693,48 @@ export function createRouterOSHelpers(client: RouterOSClient) {
       },
     },
     ip: {
+      neighbor: {
+        list(options: RouterOSPrintOptions = {}): Promise<RouterOSNeighbor[]> {
+          return client.print("/ip/neighbor", toPrintOptions(options)) as Promise<RouterOSNeighbor[]>;
+        },
+      },
+      ipsec: {
+        peer: {
+          list(options: RouterOSPrintOptions = {}): Promise<RouterOSIpsecPeer[]> {
+            return client.print("/ip/ipsec/peer", toPrintOptions(options)) as Promise<RouterOSIpsecPeer[]>;
+          },
+        },
+      },
+      route: {
+        list(options: RouterOSPrintOptions = {}): Promise<RouterOSIpRoute[]> {
+          return client.print("/ip/route", toPrintOptions(options)) as Promise<RouterOSIpRoute[]>;
+        },
+      },
+      dhcpServer: {
+        lease: {
+          list(options: RouterOSPrintOptions = {}): Promise<RouterOSDhcpLease[]> {
+            return client.print(
+              "/ip/dhcp-server/lease",
+              toPrintOptions(options)
+            ) as Promise<RouterOSDhcpLease[]>;
+          },
+        },
+      },
+      service: {
+        list(options: RouterOSPrintOptions = {}): Promise<RouterOSIpService[]> {
+          return client.print("/ip/service", toPrintOptions(options)) as Promise<RouterOSIpService[]>;
+        },
+        async set(
+          id: string,
+          attributes: Record<string, RouterOSPrimitive>,
+          options: Omit<RouterOSCommandOptions, "attributes"> = {}
+        ): Promise<void> {
+          await client.execute("/ip/service/set", {
+            ...options,
+            attributes: withId(id, attributes),
+          });
+        },
+      },
       address: {
         list(options: RouterOSPrintOptions = {}): Promise<RouterOSIpAddress[]> {
           return client.print("/ip/address", toPrintOptions(options)) as Promise<RouterOSIpAddress[]>;
@@ -714,6 +1038,13 @@ export function createRouterOSHelpers(client: RouterOSClient) {
             ...options,
             attributes: withId(id),
           });
+        },
+      },
+    },
+    ipv6: {
+      neighbor: {
+        list(options: RouterOSPrintOptions = {}): Promise<RouterOSIpv6Neighbor[]> {
+          return client.print("/ipv6/neighbor", toPrintOptions(options)) as Promise<RouterOSIpv6Neighbor[]>;
         },
       },
     },

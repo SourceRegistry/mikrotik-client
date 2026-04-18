@@ -1,7 +1,7 @@
 {
   "name": "@sourceregistry/mikrotik-client",
-  "version": "1.0.0",
-  "description": "TypeScript-first MikroTik RouterOS client with binary API support.",
+  "version": "0.1.0-alpha.0",
+  "description": "TypeScript-first MikroTik RouterOS, SwitchOS, and MNDP neighbor discovery client.",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -25,11 +25,6 @@
       "types": "./dist/switchos/index.d.ts",
       "import": "./dist/switchos/index.js",
       "require": "./dist/switchos/index.cjs"
-    },
-    "./experimental": {
-      "types": "./dist/experimental/index.d.ts",
-      "import": "./dist/experimental/index.js",
-      "require": "./dist/experimental/index.cjs"
     }
   },
   "files": [
@@ -47,11 +42,8 @@
     "example:helpers": "tsx examples/helpers.ts",
     "example:listen": "tsx examples/listen.ts",
     "example:network": "tsx examples/network.ts",
-    "example:datacenter-mlag": "tsx examples/datacenter-mlag.ts",
-    "example:multisite-bgp-wireguard": "tsx examples/multisite-bgp-wireguard.ts",
-    "example:datacenter-manager": "tsx examples/datacenter-manager.ts",
-    "example:discover": "tsx examples/discover.ts",
-    "example:fabric-manager": "tsx examples/fabric-manager.ts"
+    "example:routeros-bgp-wireguard": "tsx examples/routeros-bgp-wireguard.ts",
+    "example:discover-neighbor": "tsx examples/discover-neighbor.ts"
   },
   "repository": {
     "type": "git",
@@ -61,6 +53,8 @@
     "mikrotik",
     "routeros",
     "switchos",
+    "mndp",
+    "discovery",
     "api",
     "typescript"
   ],
@@ -92,7 +86,11 @@
   },
   "release": {
     "branches": [
-      "main"
+      "main",
+      {
+        "name": "alpha",
+        "prerelease": true
+      }
     ],
     "plugins": [
       "@semantic-release/commit-analyzer",

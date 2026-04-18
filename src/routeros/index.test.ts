@@ -65,6 +65,40 @@ function createMockServer() {
           continue;
         }
 
+        if (command === "/system/package/update/check-for-updates") {
+          socket.write(
+            encodeSentence([
+              "!re",
+              "=channel=stable",
+              "=installed-version=7.15.3",
+              "=latest-version=7.16.1",
+              "=status=New version is available",
+              `.tag=${tag}`,
+            ])
+          );
+          socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          continue;
+        }
+
+        if (command === "/system/routerboard/print") {
+          socket.write(
+            encodeSentence([
+              "!re",
+              "=model=RB5009UG+S+",
+              "=current-firmware=7.15.3",
+              "=upgrade-firmware=7.16.1",
+              `.tag=${tag}`,
+            ])
+          );
+          socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          continue;
+        }
+
+        if (command === "/system/reboot") {
+          socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          continue;
+        }
+
         if (command === "/interface/print") {
           socket.write(
             encodeSentence([
@@ -77,6 +111,55 @@ function createMockServer() {
             ])
           );
           socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          continue;
+        }
+
+        if (command === "/interface/wireless/registration-table/print") {
+          socket.write(
+            encodeSentence([
+              "!re",
+              "=.id=*17",
+              "=interface=wlan1",
+              "=ssid=legacy-ssid",
+              "=mac-address=11:22:33:44:55:66",
+              "=signal=-61",
+              `.tag=${tag}`,
+            ])
+          );
+          socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          continue;
+        }
+
+        if (command === "/interface/wifi/registration-table/print") {
+          socket.write(
+            encodeSentence([
+              "!re",
+              "=.id=*18",
+              "=interface=wifi1",
+              "=ssid=ax-ssid",
+              "=mac-address=22:33:44:55:66:77",
+              "=signal=-55",
+              "=band=5ghz-ax",
+              `.tag=${tag}`,
+            ])
+          );
+          socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          continue;
+        }
+
+        if (command === "/interface/lte/monitor") {
+          socket.write(
+            encodeSentence([
+              "!done",
+              "=model=R11e-LTE6",
+              "=manufacturer=MikroTik",
+              "=current-operator=ExampleTel",
+              "=access-technology=LTE",
+              "=rsrp=-83dBm",
+              "=rsrq=-9dB",
+              `.tag=${tag}`,
+            ])
+          );
           continue;
         }
 
@@ -130,6 +213,89 @@ function createMockServer() {
           continue;
         }
 
+        if (command === "/ip/route/print") {
+          socket.write(
+            encodeSentence([
+              "!re",
+              "=.id=*14",
+              "=dst-address=0.0.0.0/0",
+              "=gateway=192.168.88.254",
+              "=distance=1",
+              "=routing-table=main",
+              `.tag=${tag}`,
+            ])
+          );
+          socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          continue;
+        }
+
+        if (command === "/ip/neighbor/print") {
+          socket.write(
+            encodeSentence([
+              "!re",
+              "=.id=*19",
+              "=interface=ether1",
+              "=address=192.168.88.2",
+              "=address6=fe80::1",
+              "=mac-address=00:0C:42:00:38:9F",
+              "=identity=dist-sw01",
+              "=platform=MikroTik",
+              `.tag=${tag}`,
+            ])
+          );
+          socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          continue;
+        }
+
+        if (command === "/ip/ipsec/peer/print") {
+          socket.write(
+            encodeSentence([
+              "!re",
+              "=.id=*20",
+              "=name=site-a",
+              "=address=198.51.100.10/32",
+              "=local-address=203.0.113.5",
+              "=exchange-mode=ike2",
+              "=profile=default",
+              `.tag=${tag}`,
+            ])
+          );
+          socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          continue;
+        }
+
+        if (command === "/ip/dhcp-server/lease/print") {
+          socket.write(
+            encodeSentence([
+              "!re",
+              "=.id=*15",
+              "=address=192.168.88.100",
+              "=mac-address=AA:BB:CC:DD:EE:FF",
+              "=host-name=workstation",
+              "=status=bound",
+              `.tag=${tag}`,
+            ])
+          );
+          socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          continue;
+        }
+
+        if (command === "/ip/service/print") {
+          socket.write(
+            encodeSentence([
+              "!re",
+              "=.id=*16",
+              "=name=www-ssl",
+              "=port=443",
+              "=disabled=no",
+              "=tls-version=only-1.2",
+              `.tag=${tag}`,
+            ])
+          );
+          socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          continue;
+        }
+
         if (command === "/interface/bridge/print") {
           socket.write(
             encodeSentence([
@@ -141,6 +307,21 @@ function createMockServer() {
             ])
           );
           socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          continue;
+        }
+
+        if (command === "/interface/bridge/monitor") {
+          socket.write(
+            encodeSentence([
+              "!done",
+              "=state=enabled",
+              "=root-bridge=no",
+              "=root-port=combo1",
+              "=port-count=2",
+              "=declared-vlan-ids=1",
+              `.tag=${tag}`,
+            ])
+          );
           continue;
         }
 
@@ -159,6 +340,21 @@ function createMockServer() {
           continue;
         }
 
+        if (command === "/interface/bridge/port/monitor") {
+          socket.write(
+            encodeSentence([
+              "!done",
+              "=interface=combo1",
+              "=status=in-bridge",
+              "=role=root-port",
+              "=forwarding=yes",
+              "=actual-path-cost=2000",
+              `.tag=${tag}`,
+            ])
+          );
+          continue;
+        }
+
         if (command === "/interface/bridge/vlan/print") {
           socket.write(
             encodeSentence([
@@ -167,6 +363,22 @@ function createMockServer() {
               "=bridge=bridge",
               "=vlan-ids=10",
               "=tagged=bridge,bond-server01",
+              `.tag=${tag}`,
+            ])
+          );
+          socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          continue;
+        }
+
+        if (command === "/ipv6/neighbor/print") {
+          socket.write(
+            encodeSentence([
+              "!re",
+              "=.id=*21",
+              "=address=fe80::de2c:6eff:fec5:a7ff",
+              "=mac-address=DC:2C:6E:C5:A7:FF",
+              "=interface=sfp-sfpplus1",
+              "=vrf=main",
               `.tag=${tag}`,
             ])
           );
@@ -300,7 +512,11 @@ function createMockServer() {
           command === "/routing/bgp/connection/set" ||
           command === "/routing/bgp/connection/remove" ||
           command === "/routing/rule/add" ||
-          command === "/routing/rule/remove"
+          command === "/routing/rule/remove" ||
+          command === "/system/package/update/install" ||
+          command === "/system/routerboard/upgrade" ||
+          command === "/ip/service/set" ||
+          command === "/export"
         ) {
           socket.write(encodeSentence(["!done", `.tag=${tag}`]));
           continue;
@@ -475,14 +691,27 @@ describe("RouterOSClient", () => {
       filters,
       bonds,
       bridges,
+      bridgeMonitor,
       bridgePorts,
+      bridgePortMonitor,
       bridgeVlans,
+      routes,
+      neighbors,
+      ipsecPeers,
+      dhcpLeases,
+      ipServices,
+      ipv6Neighbors,
       pppSecrets,
       wgInterfaces,
       wgPeers,
       bgpTemplates,
       bgpConnections,
       routingRules,
+      packageUpdate,
+      routerboard,
+      legacyWirelessClients,
+      wifiClients,
+      lteMonitor,
     ] = await Promise.all([
       client.system.resource.get({
         proplist: ["uptime", "cpu-load"],
@@ -493,14 +722,27 @@ describe("RouterOSClient", () => {
       client.ip.firewall.filter.list(),
       client.interface.bonding.list(),
       client.bridge.list(),
+      client.bridge.monitor("bridge"),
       client.bridge.port.list(),
+      client.bridge.port.monitor("*5"),
       client.bridge.vlan.list(),
+      client.ip.route.list(),
+      client.ip.neighbor.list(),
+      client.ip.ipsec.peer.list(),
+      client.ip.dhcpServer.lease.list(),
+      client.ip.service.list(),
+      client.ipv6.neighbor.list(),
       client.ppp.secret.list(),
       client.wireguard.interface.list(),
       client.wireguard.peer.list(),
       client.routing.bgp.template.list(),
       client.routing.bgp.connection.list(),
       client.routing.rule.list(),
+      client.system.package.update.checkForUpdates(),
+      client.system.routerboard.get(),
+      client.interface.wireless.registrationTable.list(),
+      client.interface.wifi.registrationTable.list(),
+      client.interface.lte.monitor("lte1"),
     ]);
 
     expect(resource?.uptime).toBe("1d2h");
@@ -510,16 +752,36 @@ describe("RouterOSClient", () => {
     expect(filters[0]?.chain).toBe("input");
     expect(bonds[0]?.mode).toBe("802.3ad");
     expect(bridges[0]?.name).toBe("bridge");
+    expect(bridgeMonitor?.["root-port"]).toBe("combo1");
     expect(bridgePorts[0]?.interface).toBe("ether2");
+    expect(bridgePortMonitor?.role).toBe("root-port");
     expect(bridgeVlans[0]?.["vlan-ids"]).toBe("10");
+    expect(routes[0]?.gateway).toBe("192.168.88.254");
+    expect(neighbors[0]?.identity).toBe("dist-sw01");
+    expect(ipsecPeers[0]?.name).toBe("site-a");
+    expect(dhcpLeases[0]?.["host-name"]).toBe("workstation");
+    expect(ipServices[0]?.name).toBe("www-ssl");
+    expect(ipv6Neighbors[0]?.vrf).toBe("main");
     expect(pppSecrets[0]?.name).toBe("user1");
     expect(wgInterfaces[0]?.name).toBe("wg-site2");
     expect(wgPeers[0]?.interface).toBe("wg-site2");
     expect(bgpTemplates[0]?.name).toBe("dc-ebgp");
     expect(bgpConnections[0]?.name).toBe("site2-ebgp");
     expect(routingRules[0]?.table).toBe("main");
+    expect(packageUpdate?.["latest-version"]).toBe("7.16.1");
+    expect(routerboard?.["upgrade-firmware"]).toBe("7.16.1");
+    expect(legacyWirelessClients[0]?.ssid).toBe("legacy-ssid");
+    expect(wifiClients[0]?.band).toBe("5ghz-ax");
+    expect(lteMonitor?.model).toBe("R11e-LTE6");
 
     await client.system.identity.set("core-router");
+    await client.system.package.update.install();
+    await client.system.routerboard.upgrade();
+    await client.system.reboot();
+    await client.system.exportConfig({
+      file: "backup",
+      terse: true,
+    });
     await client.interface.disable("*1");
     await client.interface.bonding.add({
       name: "bond-server01",
@@ -593,6 +855,10 @@ describe("RouterOSClient", () => {
       table: "main",
       "src-address": "10.10.10.0/24",
     });
+    await client.ip.service.set("*16", {
+      disabled: true,
+      port: 8443,
+    });
 
     await client.close();
   });
@@ -613,17 +879,21 @@ describe("RouterOSClient", () => {
       password: "",
     });
 
-    const [identity, bonds, bridgeVlans, bgpConnections] = await Promise.all([
+    const [identity, bonds, bridgeVlans, bgpConnections, ipv6Neighbors, wifiClients] = await Promise.all([
       client.system.identity.get(),
       client.interface.bonding.list(),
       client.bridge.vlan.list(),
       client.routing.bgp.connection.list(),
+      client.ipv6.neighbor.list(),
+      client.interface.wifi.registrationTable.list(),
     ]);
 
     expect(identity?.name).toBe("mikrotik-lab");
     expect(bonds[0]?.name).toBe("bond-server01");
     expect(bridgeVlans[0]?.["vlan-ids"]).toBe("10");
     expect(bgpConnections[0]?.name).toBe("site2-ebgp");
+    expect(ipv6Neighbors[0]?.interface).toBe("sfp-sfpplus1");
+    expect(wifiClients[0]?.interface).toBe("wifi1");
 
     await client.close();
   });

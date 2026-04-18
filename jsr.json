@@ -1,12 +1,11 @@
 {
   "$schema": "https://jsr.io/schema/config-file.v1.json",
   "name": "@sourceregistry/mikrotik-client",
-  "version": "1.5.10",
+  "version": "0.1.0-alpha.0",
   "exports": {
     ".": "./src/index.ts",
     "./switchos": "./src/switchos/index.ts",
-    "./routeros": "./src/routeros/index.ts",
-    "./experimental": "./src/experimental/index.ts"
+    "./routeros": "./src/routeros/index.ts"
   },
   "publish": {
     "include": [

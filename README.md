@@ -13,11 +13,70 @@ This package targets the official RouterOS binary API documented by MikroTik and
 - typed `client.helpers` wrappers for common menus
 - sentence tags, queries, streaming `listen`, and trap handling
 - `SwitchOSClient` for digest-auth `.b` endpoints used by SwOS web UI
+- MNDP-based neighbor discovery helpers for bootstrap flows
 
-Experimental orchestration helpers live under `@sourceregistry/mikrotik-client/experimental`:
+## Stability
 
-- `DatacenterManager` for inventory, segmentation, fan-out actions, and subnet discovery
-- `FabricManager` for network intent, topology grouping, preview, dry-run planning, and apply
+This library is intended to be stable.
+
+- Typed RouterOS helpers are added only for publicly documented menus and command paths.
+- If a RouterOS operation is not documented well enough to stand behind as stable API, use the raw surface: `client.execute(...)`, `client.print(...)`, or `client.api...`.
+- SwitchOS remains intentionally low-level. MikroTik does not publish a fully supported public SwOS API, so this package exposes transport primitives (`read`, `write`, `action`, `download`) and optional schema-driven access rather than claiming stable typed coverage for undocumented endpoints.
+- Discovery stays focused on local hardware bootstrap, not centralized planning.
+
+## Feature Matrix
+
+| Capability | RouterOS | SwitchOS |
+| --- | --- | --- |
+| Connect/authenticate | Yes, binary API over TCP or API-SSL | Yes, HTTP digest auth |
+| Raw command execution | Yes, `execute(...)` | No CLI surface; use endpoint `read`/`write`/`action` |
+| Dynamic path API | Yes, `client.api...` | No |
+| Typed helper layer | Yes, documented/common menus only | No stable typed helper layer |
+| Read menu data | Yes | Yes |
+| Write configuration | Yes | Yes |
+| Trigger action endpoints | Yes | Yes |
+| Streaming/listen | Yes, `listen(...)` | No |
+| Trap/error handling | Yes, `RouterOSTrapError` | HTTP/request errors only |
+| Download files/data | Not as dedicated helper | Yes, `download(...)` |
+| Schema-aware access | Not needed | Yes, optional schema support |
+| Pre-auth local discovery | Yes, MNDP listener/discovery helpers | Detects MikroTik ads on network, usable before auth |
+| Provisioning/config helpers | Yes, typed helpers plus raw API access | Yes, low-level endpoint helpers |
+
+### RouterOS
+
+| Area | Support |
+| --- | --- |
+| System resource / identity | Typed helpers |
+| Package update / RouterBOARD / reboot / export | Typed helpers |
+| Interfaces / bonding | Typed helpers |
+| Legacy wireless registration table | Typed helpers |
+| WiFi registration table | Typed helpers |
+| LTE monitor | Typed helper |
+| Bridges / bridge ports / bridge VLANs | Typed helpers |
+| Bridge / bridge-port STP monitor | Typed helpers |
+| IP addresses / routes / neighbors | Typed helpers |
+| DHCP leases | Typed helper |
+| IP services | Typed helpers |
+| IPsec peers | Typed helper |
+| Firewall filters | Typed helpers |
+| IPv6 neighbors | Typed helper |
+| PPP secrets | Typed helpers |
+| WireGuard interfaces / peers | Typed helpers |
+| Routing rules / BGP templates / BGP connections | Typed helpers |
+| Anything else in RouterOS API | Raw `execute`, `print`, or `client.api` |
+
+### SwitchOS
+
+| Area | Support |
+| --- | --- |
+| Generic endpoint reads | `read(path)` |
+| Generic endpoint writes | `write(path, body)` |
+| Action endpoints like `/reboot` | `action(path)` |
+| Binary/file downloads | `download(path)` |
+| Model/schema inspection | `schema`, `listEndpoints()`, `getEndpointSchema()` |
+| Encoding helpers for hex/IP/MAC/bitmask/literals | Provided |
+| Stable typed feature wrappers | Not provided intentionally |
+| Undocumented/model-specific operations | Use raw low-level client only |
 
 ## Installation
 
@@ -35,6 +94,8 @@ SwitchOS does not expose public supported API docs, but MikroTik SwOS web UI use
 - special action endpoints like `/reboot` and `/reset` with body `*`
 
 This package exposes low-level `SwitchOSClient` for that transport. Recommended use: schema-driven endpoint access per model or family.
+
+If an endpoint or action is not clearly documented by MikroTik or validated by a stable device schema, prefer staying on the low-level `SwitchOSClient` surface instead of wrapping it as typed library API.
 
 ```ts
 import {
@@ -82,6 +143,139 @@ console.log(resources[0]);
 await client.close();
 ```
 
+## Neighbor Discovery
+
+Use the Neighbor Discovery Service as the first bootstrap step when you need to find MikroTik devices on the local network before authentication.
+
+This is intentionally discovery-only:
+
+- local segment / broadcast domain only
+- depends on discovery being enabled on the device
+- useful for finding devices before API or HTTP credentials are known
+- not a replacement for authenticated inventory
+- discovery is MNDP-only in the active package surface
+
+### Recommended API
+
+```ts
+import {
+  NeighborDiscoveryService,
+  discoverNeighbors,
+  listenNeighbors,
+} from "@sourceregistry/mikrotik-client";
+
+const neighbors = await discoverNeighbors({
+  timeoutMs: 3_000,
+});
+
+for (const neighbor of neighbors) {
+  console.log({
+    mac: neighbor.macAddress,
+    identity: neighbor.identity,
+    platform: neighbor.platform,
+    version: neighbor.version,
+    hardware: neighbor.hardware,
+    interface: neighbor.interfaceName,
+    ip: neighbor.address,
+  });
+}
+
+const service = await listenNeighbors({
+  requestIntervalMs: 30_000,
+});
+
+for await (const neighbor of service) {
+  console.log("neighbor update", neighbor.identity, neighbor.address);
+}
+
+await service.close();
+
+const explicitService = await new NeighborDiscoveryService({
+  requestIntervalMs: 30_000,
+}).start();
+
+explicitService.on("neighbor", (neighbor, previous) => {
+  console.log("neighbor event", {
+    identity: neighbor.identity,
+    previousIdentity: previous?.identity,
+  });
+});
+
+await explicitService.close();
+```
+
+Use `requestIntervalMs` when you want the Neighbor Discovery Service to keep probing the subnet continuously instead of sending a single solicitation at startup.
+
+### Low-Level MNDP
+
+Use the raw MNDP listener when you want advertisements exactly as MikroTik sends them instead of normalized `DiscoveredNeighbor` records.
+
+```ts
+import { discoverMNDP, listenMNDP } from "@sourceregistry/mikrotik-client";
+
+const advertisements = await discoverMNDP({
+  timeoutMs: 3_000,
+});
+
+for (const advertisement of advertisements) {
+  console.log("found", advertisement.identity, advertisement.remoteAddress);
+}
+
+const listener = await listenMNDP({
+  requestIntervalMs: 30_000,
+});
+
+listener.on("advertisement", (advertisement) => {
+  console.log("mndp", advertisement.identity, advertisement.remoteAddress);
+});
+```
+
+Bootstrap flow usually looks like:
+
+1. discover a neighbor with `discoverNeighbors()` or `listenNeighbors()`
+2. choose transport and credentials
+3. connect with `RouterOSClient` or `SwitchOSClient`
+4. fetch authoritative state after authentication
+
+For a simple discovery-to-login flow, see:
+
+```bash
+npm run example:discover-neighbor
+```
+
+If MNDP discovery is not visible from your host, the example also supports direct fallback through environment variables:
+
+```bash
+MIKROTIK_HOST=127.0.0.1
+MIKROTIK_PORT=8728
+MIKROTIK_USERNAME=admin
+MIKROTIK_PASSWORD=secret
+npm run example:discover-neighbor
+```
+
+For the Docker RouterOS compose you referenced, typical direct targets are:
+
+- `routeros` -> `127.0.0.1:8728`
+- `routeros2` -> `127.0.0.1:28728`
+- `routeros-client` -> `127.0.0.1:38728`
+
+Set `MIKROTIK_TLS=true` when targeting API-SSL instead of plain API.
+
+If you want to test MNDP from inside the same Docker bridge instead of using direct fallback, add a Node dev container to the RouterOS compose and run the discovery example there:
+
+```bash
+docker compose up -d adopter-dev
+docker compose exec adopter-dev npm run example:discover-neighbor
+```
+
+Inside that dev container, `MIKROTIK_USERNAME` and `MIKROTIK_PASSWORD` can be set on the service or passed at exec time.
+
+For a one-shot run that installs tooling if needed and then exits, use:
+
+```bash
+docker compose run --rm adopter-run
+```
+
 ## Binary API Commands
 
 ```ts
@@ -105,7 +299,7 @@ console.log(result.records);
 
 ## Dynamic API Tree
 
-The `api` proxy converts property access into RouterOS path segments:
+The `api` proxy converts property access into RouterOS path segments. It is typed recursively, so arbitrary RouterOS menu paths can be chained without falling back to `unknown`:
 
 ```ts
 const identities = await client.api.system.identity.print();
@@ -132,6 +326,10 @@ const identity = await client.system.identity.get();
 const resource = await client.system.resource.get({
   proplist: ["uptime", "version", "cpu-load"],
 });
+const packageUpdate = await client.system.package.update.checkForUpdates();
+const routerboard = await client.system.routerboard.get({
+  proplist: ["model", "current-firmware", "upgrade-firmware"],
+});
 const interfaces = await client.interface.list({
   proplist: [".id", "name", "running", "disabled"],
 });
@@ -144,6 +342,30 @@ await client.ip.address.add({
 
 const bridges = await client.bridge.list({
   proplist: [".id", "name", "vlan-filtering", "disabled"],
+});
+
+const routes = await client.ip.route.list({
+  proplist: [".id", "dst-address", "gateway", "distance", "routing-table"],
+});
+
+const neighbors = await client.ip.neighbor.list({
+  proplist: ["interface", "address", "address6", "mac-address", "identity", "platform"],
+});
+
+const ipsecPeers = await client.ip.ipsec.peer.list({
+  proplist: [".id", "name", "address", "local-address", "exchange-mode"],
+});
+
+const dhcpLeases = await client.ip.dhcpServer.lease.list({
+  proplist: [".id", "address", "mac-address", "host-name", "status"],
+});
+
+const ipServices = await client.ip.service.list({
+  proplist: [".id", "name", "port", "disabled", "tls-version"],
+});
+
+const ipv6Neighbors = await client.ipv6.neighbor.list({
+  proplist: [".id", "address", "mac-address", "interface", "vrf"],
 });
 
 const pppSecrets = await client.ppp.secret.list({
@@ -165,137 +387,34 @@ const bgpConnections = await client.routing.bgp.connection.list({
 const wgPeers = await client.wireguard.peer.list({
   proplist: [".id", "interface", "allowed-address", "endpoint-address"],
 });
-```
 
-
-## Datacenter Wrapper
-
-## Experimental Orchestration
-
-Import orchestration helpers from experimental subpath:
-
-```ts
-import { DatacenterManager, FabricManager } from "@sourceregistry/mikrotik-client/experimental";
-```
-
-Use `DatacenterManager` when many routers exist across sites, roles, and segments:
-
-```ts
-import { DatacenterManager } from "@sourceregistry/mikrotik-client/experimental";
-
-const manager = new DatacenterManager([
-  {
-    id: "dc1-leaf1",
-    host: "10.0.0.11",
-    username: "admin",
-    password: "secret",
-    site: "dc1",
-    role: "leaf",
-    tags: ["fabric", "mlag"],
-  },
-  {
-    id: "dc1-edge1",
-    host: "10.0.1.1",
-    username: "admin",
-    password: "secret",
-    site: "dc1",
-    role: "edge",
-    tags: ["wan"],
-  },
-]);
-
-const fabric = await manager.snapshot({ tags: ["fabric"] });
-
-const bondStates = await manager.run({ site: "dc1", role: "leaf" }, async (device) => ({
-  id: device.id,
-  snapshot: await device.client.snapshot(device.id),
-}));
-```
-
-### Discovery
-
-Discovery scan probe RouterOS API/API-SSL on given subnets. Needs credentials. Good for bootstrap, not full source of truth.
-
-```ts
-const found = await DatacenterManager.discover({
-  subnets: ["10.0.0.0/24", "10.0.1.0/24"],
-  credentials: { username: "admin", password: "secret" },
-  defaultSite: "dc1",
-  defaultRole: "unknown",
-  tags: ["discovered"],
-});
-```
-
-## Fabric Wrapper
-
-Best split:
-- `DatacenterManager` = inventory/discovery
-- `FabricManager` = networking intent and topology
-
-`FabricManager` model nodes, links, segments, BGP peers, WireGuard tunnels, then build plan before apply:
-
-```ts
-import { DatacenterManager, FabricManager } from "@sourceregistry/mikrotik-client/experimental";
-
-const inventory = new DatacenterManager([
-  {
-    id: "dc1-leaf1",
-    host: "10.0.0.11",
-    username: "admin",
-    password: "secret",
-    site: "dc1",
-    role: "leaf",
-  },
-]);
-
-const fabric = new FabricManager({
-  inventory,
-  nodes: [
-    {
-      id: "leaf1",
-      deviceId: "dc1-leaf1",
-      fabric: "prod",
-      bridgeName: "bridge-fabric",
-      asn: 65001,
-      loopback: "10.255.255.1",
-    },
-  ],
-  links: [
-    {
-      id: "server01",
-      kind: "mlag",
-      endpoints: [
-        {
-          nodeId: "leaf1",
-          members: ["ether1", "ether2"],
-          bondName: "bond-server01",
-          mlagId: 10,
-        },
-      ],
-    },
-  ],
-  segments: [
-    {
-      id: "servers",
-      name: "servers",
-      vlanId: 20,
-      attachments: [
-        {
-          nodeId: "leaf1",
-          bridge: "bridge-fabric",
-          tagged: ["bridge-fabric", "bond-server01"],
-        },
-      ],
-    },
-  ],
+const legacyWirelessClients = await client.interface.wireless.registrationTable.list({
+  proplist: [".id", "interface", "ssid", "mac-address", "signal"],
 });
 
-const plan = fabric.plan({ fabric: "prod" });
-console.log(plan);
-const preview = await fabric.previewPlan(plan);
-console.log(preview);
-// await fabric.apply(plan)
+const wifiClients = await client.interface.wifi.registrationTable.list({
+  proplist: [".id", "interface", "ssid", "mac-address", "signal", "band"],
+});
+
+const bridgeStp = await client.bridge.monitor("bridge");
+const bridgePortStp = await client.bridge.port.monitor("*5");
+const lteInfo = await client.interface.lte.monitor("lte1");
+
+await client.ip.service.set("*1", {
+  disabled: true,
+});
+
+await client.system.exportConfig({
+  file: "backup",
+  terse: true,
+});
+
+await client.system.package.update.install();
+await client.system.routerboard.upgrade();
+await client.system.reboot();
 ```
+
+Helpers are curated, not exhaustive. Missing operations are not necessarily unsupported by the library; they may still be available through `client.execute(...)`, `client.print(...)`, or `client.api...` and can be promoted into typed helpers later once command shape and stability are well documented.
 
 ## Listening For Changes
 
@@ -341,10 +460,8 @@ npm run build
 npm test
 npm run example:basic
 npm run example:helpers
+npm run example:listen
 npm run example:network
-npm run example:datacenter-mlag
-npm run example:multisite-bgp-wireguard
-npm run example:datacenter-manager
-npm run example:discover
-npm run example:fabric-manager
+npm run example:routeros-bgp-wireguard
+npm run example:discover-neighbor
 ```

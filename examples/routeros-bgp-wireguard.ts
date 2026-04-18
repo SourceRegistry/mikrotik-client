@@ -33,7 +33,7 @@ async function main() {
     });
 
     await client.routing.bgp.template.add({
-      name: "dc-ebgp",
+      name: "wan-ebgp",
       as: 65001,
       "router-id": "10.255.255.1",
       "routing-table": "main",
@@ -48,7 +48,7 @@ async function main() {
       "local.address": "10.255.255.1",
       "remote.address": "10.255.255.2",
       "remote.as": 65002,
-      templates: "dc-ebgp",
+      templates: "wan-ebgp",
       comment: "BGP over WireGuard to site2",
     });
 
