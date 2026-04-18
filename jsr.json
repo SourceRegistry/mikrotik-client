@@ -12,6 +12,9 @@
       "src/**/*.ts",
       "README.md",
       "LICENSE"
+    ],
+    "exclude": [
+      "src/**/*.test.ts"
     ]
   }
 }

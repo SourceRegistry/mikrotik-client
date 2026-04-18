@@ -339,7 +339,338 @@ export type RouterOSLteMonitor = RouterOSRecord & {
   roaming?: string;
 };
 
-export type RouterOSHelpers = ReturnType<typeof createRouterOSHelpers>;
+export type RouterOSHelpers = {
+  system: {
+    resource: {
+      get(options?: RouterOSPrintOptions): Promise<RouterOSSystemResource | undefined>;
+    };
+    identity: {
+      get(options?: RouterOSPrintOptions): Promise<RouterOSIdentity | undefined>;
+      set(name: string, options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+    };
+    package: {
+      update: {
+        checkForUpdates(
+          options?: Omit<RouterOSCommandOptions, "attributes">
+        ): Promise<RouterOSPackageUpdateStatus | undefined>;
+        install(options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+      };
+    };
+    routerboard: {
+      get(options?: RouterOSPrintOptions): Promise<RouterOSRouterboard | undefined>;
+      upgrade(options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+    };
+    reboot(options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+    exportConfig(
+      attributes: {
+        file: string;
+        compact?: boolean;
+        terse?: boolean;
+        verbose?: boolean;
+        "show-sensitive"?: boolean;
+        path?: string;
+      },
+      options?: Omit<RouterOSCommandOptions, "attributes">
+    ): Promise<void>;
+  };
+  interface: {
+    list(options?: RouterOSPrintOptions): Promise<RouterOSInterface[]>;
+    listen(options?: RouterOSListenOptions): Promise<RouterOSStream>;
+    enable(id: string, options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+    disable(id: string, options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+    wireless: {
+      registrationTable: {
+        list(options?: RouterOSPrintOptions): Promise<RouterOSWirelessRegistration[]>;
+      };
+    };
+    wifi: {
+      registrationTable: {
+        list(options?: RouterOSPrintOptions): Promise<RouterOSWirelessRegistration[]>;
+      };
+    };
+    lte: {
+      monitor(
+        interfaceId: string,
+        options?: RouterOSMonitorOptions
+      ): Promise<RouterOSLteMonitor | undefined>;
+    };
+    bonding: {
+      list(options?: RouterOSPrintOptions): Promise<RouterOSBonding[]>;
+      add(
+        attributes: {
+          name: string;
+          slaves: string | readonly string[];
+          mode?:
+            | "802.3ad"
+            | "balance-xor"
+            | "active-backup"
+            | "balance-rr"
+            | "broadcast"
+            | "balance-tlb"
+            | "balance-alb";
+          "lacp-rate"?: "30secs" | "1sec";
+          "mlag-id"?: string | number;
+          "transmit-hash-policy"?: string;
+          "link-monitoring"?: "mii" | "arp" | "none";
+          "mii-interval"?: string | number;
+          "arp-ip-targets"?: string | readonly string[];
+          primary?: string;
+          mtu?: string | number;
+          disabled?: boolean;
+          comment?: string;
+        },
+        options?: Omit<RouterOSCommandOptions, "attributes">
+      ): Promise<void>;
+      set(
+        id: string,
+        attributes: Record<string, RouterOSPrimitive>,
+        options?: Omit<RouterOSCommandOptions, "attributes">
+      ): Promise<void>;
+      remove(id: string, options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+    };
+  };
+  bridge: {
+    list(options?: RouterOSPrintOptions): Promise<RouterOSBridge[]>;
+    monitor(
+      bridgeId: string,
+      options?: RouterOSMonitorOptions
+    ): Promise<RouterOSBridgeMonitor | undefined>;
+    add(
+      attributes: {
+        name: string;
+        comment?: string;
+        disabled?: boolean;
+        "vlan-filtering"?: boolean;
+        "protocol-mode"?: string;
+      },
+      options?: Omit<RouterOSCommandOptions, "attributes">
+    ): Promise<void>;
+    remove(id: string, options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+    set(
+      id: string,
+      attributes: Record<string, RouterOSPrimitive>,
+      options?: Omit<RouterOSCommandOptions, "attributes">
+    ): Promise<void>;
+    port: {
+      list(options?: RouterOSPrintOptions): Promise<RouterOSBridgePort[]>;
+      monitor(
+        portId: string,
+        options?: RouterOSMonitorOptions
+      ): Promise<RouterOSBridgePortMonitor | undefined>;
+      add(
+        attributes: {
+          bridge: string;
+          interface: string;
+          pvid?: number | string;
+          comment?: string;
+          disabled?: boolean;
+        },
+        options?: Omit<RouterOSCommandOptions, "attributes">
+      ): Promise<void>;
+      remove(id: string, options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+      set(
+        id: string,
+        attributes: Record<string, RouterOSPrimitive>,
+        options?: Omit<RouterOSCommandOptions, "attributes">
+      ): Promise<void>;
+    };
+    vlan: {
+      list(options?: RouterOSPrintOptions): Promise<RouterOSBridgeVlan[]>;
+      add(
+        attributes: {
+          bridge: string;
+          "vlan-ids": string | number | readonly (string | number)[];
+          tagged?: string | readonly string[];
+          untagged?: string | readonly string[];
+          disabled?: boolean;
+          comment?: string;
+        },
+        options?: Omit<RouterOSCommandOptions, "attributes">
+      ): Promise<void>;
+      remove(id: string, options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+    };
+  };
+  ip: {
+    neighbor: {
+      list(options?: RouterOSPrintOptions): Promise<RouterOSNeighbor[]>;
+    };
+    ipsec: {
+      peer: {
+        list(options?: RouterOSPrintOptions): Promise<RouterOSIpsecPeer[]>;
+      };
+    };
+    route: {
+      list(options?: RouterOSPrintOptions): Promise<RouterOSIpRoute[]>;
+    };
+    dhcpServer: {
+      lease: {
+        list(options?: RouterOSPrintOptions): Promise<RouterOSDhcpLease[]>;
+      };
+    };
+    service: {
+      list(options?: RouterOSPrintOptions): Promise<RouterOSIpService[]>;
+      set(
+        id: string,
+        attributes: Record<string, RouterOSPrimitive>,
+        options?: Omit<RouterOSCommandOptions, "attributes">
+      ): Promise<void>;
+    };
+    address: {
+      list(options?: RouterOSPrintOptions): Promise<RouterOSIpAddress[]>;
+      add(
+        attributes: {
+          address: string;
+          interface: string;
+          network?: string;
+          comment?: string;
+          disabled?: boolean;
+        },
+        options?: Omit<RouterOSCommandOptions, "attributes">
+      ): Promise<void>;
+      set(
+        id: string,
+        attributes: {
+          address?: string;
+          interface?: string;
+          network?: string;
+          comment?: string;
+          disabled?: boolean;
+        },
+        options?: Omit<RouterOSCommandOptions, "attributes">
+      ): Promise<void>;
+      remove(id: string, options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+    };
+    firewall: {
+      filter: {
+        list(options?: RouterOSPrintOptions): Promise<RouterOSFirewallFilterRule[]>;
+        add(
+          attributes: Record<string, RouterOSPrimitive>,
+          options?: Omit<RouterOSCommandOptions, "attributes">
+        ): Promise<void>;
+        remove(id: string, options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+      };
+    };
+  };
+  wireguard: {
+    interface: {
+      list(options?: RouterOSPrintOptions): Promise<RouterOSWireGuardInterface[]>;
+      add(
+        attributes: {
+          name: string;
+          "listen-port"?: string | number;
+          mtu?: string | number;
+          "private-key"?: string;
+          disabled?: boolean;
+          comment?: string;
+        },
+        options?: Omit<RouterOSCommandOptions, "attributes">
+      ): Promise<void>;
+      set(
+        id: string,
+        attributes: Record<string, RouterOSPrimitive>,
+        options?: Omit<RouterOSCommandOptions, "attributes">
+      ): Promise<void>;
+      remove(id: string, options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+    };
+    peer: {
+      list(options?: RouterOSPrintOptions): Promise<RouterOSWireGuardPeer[]>;
+      add(
+        attributes: {
+          interface: string;
+          "public-key": string;
+          "allowed-address": string | readonly string[];
+          "endpoint-address"?: string;
+          "endpoint-port"?: string | number;
+          "persistent-keepalive"?: string | number;
+          disabled?: boolean;
+          comment?: string;
+        },
+        options?: Omit<RouterOSCommandOptions, "attributes">
+      ): Promise<void>;
+      set(
+        id: string,
+        attributes: Record<string, RouterOSPrimitive>,
+        options?: Omit<RouterOSCommandOptions, "attributes">
+      ): Promise<void>;
+      remove(id: string, options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+    };
+  };
+  ppp: {
+    secret: {
+      list(options?: RouterOSPrintOptions): Promise<RouterOSPppSecret[]>;
+      add(
+        attributes: {
+          name: string;
+          password: string;
+          service?: string;
+          profile?: string;
+          disabled?: boolean;
+          comment?: string;
+          "local-address"?: string;
+          "remote-address"?: string;
+        },
+        options?: Omit<RouterOSCommandOptions, "attributes">
+      ): Promise<void>;
+      set(
+        id: string,
+        attributes: {
+          password?: string;
+          service?: string;
+          profile?: string;
+          disabled?: boolean;
+          comment?: string;
+          "local-address"?: string;
+          "remote-address"?: string;
+        },
+        options?: Omit<RouterOSCommandOptions, "attributes">
+      ): Promise<void>;
+      remove(id: string, options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+    };
+  };
+  routing: {
+    bgp: {
+      connection: {
+        list(options?: RouterOSPrintOptions): Promise<RouterOSBgpConnection[]>;
+        add(
+          attributes: Record<string, RouterOSPrimitive>,
+          options?: Omit<RouterOSCommandOptions, "attributes">
+        ): Promise<void>;
+        set(
+          id: string,
+          attributes: Record<string, RouterOSPrimitive>,
+          options?: Omit<RouterOSCommandOptions, "attributes">
+        ): Promise<void>;
+        remove(id: string, options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+      };
+      template: {
+        list(options?: RouterOSPrintOptions): Promise<RouterOSBgpTemplate[]>;
+        add(
+          attributes: Record<string, RouterOSPrimitive>,
+          options?: Omit<RouterOSCommandOptions, "attributes">
+        ): Promise<void>;
+        set(
+          id: string,
+          attributes: Record<string, RouterOSPrimitive>,
+          options?: Omit<RouterOSCommandOptions, "attributes">
+        ): Promise<void>;
+        remove(id: string, options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+      };
+    };
+    rule: {
+      list(options?: RouterOSPrintOptions): Promise<RouterOSRoutingRule[]>;
+      add(
+        attributes: Record<string, RouterOSPrimitive>,
+        options?: Omit<RouterOSCommandOptions, "attributes">
+      ): Promise<void>;
+      remove(id: string, options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
+    };
+  };
+  ipv6: {
+    neighbor: {
+      list(options?: RouterOSPrintOptions): Promise<RouterOSIpv6Neighbor[]>;
+    };
+  };
+};
 
 function toPrintOptions(options: RouterOSPrintOptions = {}): RouterOSCommandOptions {
   const { proplist, queries, signal, timeoutMs } = options;
@@ -370,7 +701,7 @@ function withId(
 // Typed helpers are reserved for RouterOS menus and commands with public,
 // documented command paths. Undocumented or model-specific behavior should
 // stay on the raw client surface (`execute`, `print`, `api`) until proven stable.
-export function createRouterOSHelpers(client: RouterOSClient) {
+function createRouterOSHelpersInternal(client: RouterOSClient): RouterOSHelpers {
   return {
     system: {
       resource: {
@@ -1049,4 +1380,8 @@ export function createRouterOSHelpers(client: RouterOSClient) {
       },
     },
   };
+}
+
+export function createRouterOSHelpers(client: RouterOSClient): RouterOSHelpers {
+  return createRouterOSHelpersInternal(client);
 }
