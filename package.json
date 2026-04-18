@@ -1,6 +1,6 @@
 {
   "name": "@sourceregistry/mikrotik-client",
-  "version": "0.1.0-alpha.0",
+  "version": "1.0.0-alpha.1",
   "description": "TypeScript-first MikroTik RouterOS, SwitchOS, and MNDP neighbor discovery client.",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
