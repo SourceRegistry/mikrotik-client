@@ -1,3 +1,10 @@
+# [1.0.0-alpha.3](https://github.com/SourceRegistry/mikrotik-client/compare/v1.0.0-alpha.2...v1.0.0-alpha.3) (2026-04-20)
+
+
+### Features
+
+* **routeros:** add ssh command client ([8977f5e](https://github.com/SourceRegistry/mikrotik-client/commit/8977f5e1310b1c336c225df0510cc600cb09efd7))
+
 # [1.0.0-alpha.2](https://github.com/SourceRegistry/mikrotik-client/compare/v1.0.0-alpha.1...v1.0.0-alpha.2) (2026-04-18)
 
 
