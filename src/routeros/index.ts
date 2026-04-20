@@ -734,3 +734,4 @@ export class RouterOSClient {
 }
 
 export * from "./helpers";
+export * from "./ssh";

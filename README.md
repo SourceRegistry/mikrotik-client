@@ -9,6 +9,7 @@ TypeScript-first client for MikroTik RouterOS and SwitchOS.
 This package targets the official RouterOS binary API documented by MikroTik and keeps the public surface compact:
 
 - `RouterOSClient` for direct command execution over TCP or API-SSL
+- `RouterOSSshClient` for command execution through the local OpenSSH client
 - a small dynamic `client.api` tree inspired by `pve-client`
 - typed `client.helpers` wrappers for common menus
 - sentence tags, queries, streaming `listen`, and trap handling
@@ -30,6 +31,7 @@ This library is intended to be stable.
 | --- | --- | --- |
 | Connect/authenticate | Yes, binary API over TCP or API-SSL | Yes, HTTP digest auth |
 | Raw command execution | Yes, `execute(...)` | No CLI surface; use endpoint `read`/`write`/`action` |
+| SSH command execution | Yes, via local `ssh` executable | No |
 | Dynamic path API | Yes, `client.api...` | No |
 | Typed helper layer | Yes, documented/common menus only | No stable typed helper layer |
 | Read menu data | Yes | Yes |
@@ -295,6 +297,43 @@ const result = await client.execute("/ip/address/print", {
 });
 
 console.log(result.records);
+```
+
+## SSH Commands
+
+Use `RouterOSSshClient` when SSH is preferred or the RouterOS API service is not enabled. This client does not add npm dependencies; it shells out to the local OpenSSH `ssh` executable with argument arrays, not a shell command string.
+
+Password prompts are not automated by this package. Use SSH keys or an agent, or provide a custom `spawn` implementation if your environment has its own credential flow.
+
+Host key checking defaults to `accept-new`: new hosts are recorded by OpenSSH, but changed host keys fail instead of being accepted silently. For stricter environments, set `strictHostKeyChecking: true` and pre-provision `known_hosts`. Avoid `strictHostKeyChecking: false` outside local labs.
+
+`identityFile` can be a path or a `Blob`. Blob keys are written to a private temporary file with `0600` permissions for the lifetime of one command, then removed. This is useful when the private key is stored in a database or secret store instead of the filesystem.
+
+```ts
+import { RouterOSSshClient } from "@sourceregistry/mikrotik-client";
+
+const ssh = new RouterOSSshClient({
+  host: "192.168.88.1",
+  username: "admin",
+  identityFile: "/home/me/.ssh/routeros_ed25519",
+  timeoutMs: 10_000,
+});
+
+const result = await ssh.execute("/system/resource/print", {
+  words: ["terse"],
+});
+
+console.log(result.stdout);
+```
+
+```ts
+const keyFromDatabase = new Blob([privateKeyPem]);
+
+const ssh = new RouterOSSshClient({
+  host: "192.168.88.1",
+  username: "admin",
+  identityFile: keyFromDatabase,
+});
 ```
 
 ## Dynamic API Tree
