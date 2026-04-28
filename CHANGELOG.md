@@ -1,3 +1,15 @@
+# [1.0.0-alpha.5](https://github.com/SourceRegistry/mikrotik-client/compare/v1.0.0-alpha.4...v1.0.0-alpha.5) (2026-04-28)
+
+
+### Bug Fixes
+
+* integration tests ([82a26fe](https://github.com/SourceRegistry/mikrotik-client/commit/82a26fe130da9ece19909e89434366c8fb249962))
+
+
+### Features
+
+* **routeros:** add discriminated unions, enums, and watch() helpers ([cd62773](https://github.com/SourceRegistry/mikrotik-client/commit/cd627733fbccfb54b01fa55baff010ea38b35231))
+
 # [1.0.0-alpha.4](https://github.com/SourceRegistry/mikrotik-client/compare/v1.0.0-alpha.3...v1.0.0-alpha.4) (2026-04-28)
 
 
