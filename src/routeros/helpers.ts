@@ -346,103 +346,277 @@ export type RouterOSLteMonitor = {
 
 /** Known `type` values returned by `/interface` print. */
 export type RouterOSInterfaceKind =
-  | "ether" | "bridge" | "veth" | "vlan" | "bonding" | "wireguard"
-  | "wireguard-peer" | "pppoe-client" | "pppoe-server" | "l2tp-client"
-  | "l2tp-server" | "pptp-client" | "pptp-server" | "ppp-to-ether"
-  | "ovs-patch" | "ovs" | "simple-switch" | "bridge-vlan"
-  | "dot1x-ap-client" | "dot1x-client" | "dot1x-server" | "dot1x"
-  | "gre" | "gre6" | "ipip" | "ipoe" | "ipsec" | "iwarp"
-  | "bridge-ppp-client" | "bridge-ppp-server" | "pppoe-to-ether-client"
-  | "pppoe-to-ether-server" | "pptp-to-ether-client" | "pptp-to-ether-server"
-  | "l2tp-to-ether-client" | "l2tp-to-ether-server"
-  | "ovs-patch@ovs" | "ovs-system@ovs" | "ovs-integrationbr@ovs"
-  | "wireless" | "wifi" | "wifi-wwdn" | "wireless-wds" | "wifi-vap"
-  | "wifi-wwdn-vap" | "wifi-loading" | "wlan-sae-loader"
-  | "uftp-client" | "uftp-server"
-  | "sstpc-client" | "sstpc-server"
-  | "statistics" | "bgp-filter" | "vrrp"
-  | "ovs-system" | "ovs-patch" | "ovs-integrationbr"
-  | "ng-ether" | "ng-ether-vlan" | "ng-ring" | "ng-ring-bridge"
-  | "ng-splitter" | "ng-splitter-bridge" | "ng-splitter-router"
-  | "sfp+10g" | "sff-10g" | "sff+10g" | "sfp+10g-bridge"
-  | "sff-10g-bridge" | "sff+10g-bridge"
-  | "contiki" | "tap" | "lte" | "modem"
-  | "pim-tunnel" | "pim-tunnel6"
+  | "ether"
+  | "bridge"
+  | "veth"
+  | "vlan"
+  | "bonding"
+  | "wireguard"
+  | "wireguard-peer"
+  | "pppoe-client"
+  | "pppoe-server"
+  | "l2tp-client"
+  | "l2tp-server"
+  | "pptp-client"
+  | "pptp-server"
+  | "ppp-to-ether"
+  | "ovs-patch"
+  | "ovs"
+  | "simple-switch"
+  | "bridge-vlan"
+  | "dot1x-ap-client"
+  | "dot1x-client"
+  | "dot1x-server"
+  | "dot1x"
+  | "gre"
+  | "gre6"
+  | "ipip"
+  | "ipoe"
+  | "ipsec"
+  | "iwarp"
+  | "bridge-ppp-client"
+  | "bridge-ppp-server"
+  | "pppoe-to-ether-client"
+  | "pppoe-to-ether-server"
+  | "pptp-to-ether-client"
+  | "pptp-to-ether-server"
+  | "l2tp-to-ether-client"
+  | "l2tp-to-ether-server"
+  | "ovs-patch@ovs"
+  | "ovs-system@ovs"
+  | "ovs-integrationbr@ovs"
+  | "wireless"
+  | "wifi"
+  | "wifi-wwdn"
+  | "wireless-wds"
+  | "wifi-vap"
+  | "wifi-wwdn-vap"
+  | "wifi-loading"
+  | "wlan-sae-loader"
+  | "uftp-client"
+  | "uftp-server"
+  | "sstpc-client"
+  | "sstpc-server"
+  | "statistics"
+  | "bgp-filter"
+  | "vrrp"
+  | "ovs-system"
+  | "ovs-patch"
+  | "ovs-integrationbr"
+  | "ng-ether"
+  | "ng-ether-vlan"
+  | "ng-ring"
+  | "ng-ring-bridge"
+  | "ng-splitter"
+  | "ng-splitter-bridge"
+  | "ng-splitter-router"
+  | "sfp+10g"
+  | "sff-10g"
+  | "sff+10g"
+  | "sfp+10g-bridge"
+  | "sff-10g-bridge"
+  | "sff+10g-bridge"
+  | "contiki"
+  | "tap"
+  | "lte"
+  | "modem"
+  | "pim-tunnel"
+  | "pim-tunnel6"
   | "vrf"
   | "user-manager"
-  | "wireless-wds" | "wlan-sae-loader"
-  | "capi" | "capi/channel" | "isl" | "ppp-client" | "sppcie"
-  | "slarc" | "slbrc" | "slc" | "slr" | "vti" | "vti6"
-  | "ijp" | "ijp6" | "pppc" | "iijp" | "iijp6"
-  | "l2tp-vpnc" | "pptp-vpnc" | "pptp-vpn6c" | "sstp-vpnc"
-  | "pppoe-vpnc" | "sstpc"
-  | "wwan" | "wwan/ppp"
-  | "bgp" | "bgp6";
+  | "wireless-wds"
+  | "wlan-sae-loader"
+  | "capi"
+  | "capi/channel"
+  | "isl"
+  | "ppp-client"
+  | "sppcie"
+  | "slarc"
+  | "slbrc"
+  | "slc"
+  | "slr"
+  | "vti"
+  | "vti6"
+  | "ijp"
+  | "ijp6"
+  | "pppc"
+  | "iijp"
+  | "iijp6"
+  | "l2tp-vpnc"
+  | "pptp-vpnc"
+  | "pptp-vpn6c"
+  | "sstp-vpnc"
+  | "pppoe-vpnc"
+  | "sstpc"
+  | "wwan"
+  | "wwan/ppp"
+  | "bgp"
+  | "bgp6";
 
 /** Runtime const array for RouterOSInterfaceKind iteration. */
 export const INTERFACE_KINDS: readonly RouterOSInterfaceKind[] = [
-  "ether", "bridge", "veth", "vlan", "bonding", "wireguard",
-  "wireguard-peer", "pppoe-client", "pppoe-server", "l2tp-client",
-  "l2tp-server", "pptp-client", "pptp-server", "ppp-to-ether",
-  "ovs-patch", "ovs", "simple-switch", "bridge-vlan",
-  "dot1x-ap-client", "dot1x-client", "dot1x-server", "dot1x",
-  "gre", "gre6", "ipip", "ipoe", "ipsec", "iwarp",
-  "bridge-ppp-client", "bridge-ppp-server", "pppoe-to-ether-client",
-  "pppoe-to-ether-server", "pptp-to-ether-client", "pptp-to-ether-server",
-  "l2tp-to-ether-client", "l2tp-to-ether-server",
-  "wireless", "wifi", "wifi-wwdn", "wireless-wds", "wifi-vap",
-  "wifi-wwdn-vap", "wifi-loading", "wlan-sae-loader",
-  "uftp-client", "uftp-server",
-  "sstpc-client", "sstpc-server",
-  "statistics", "bgp-filter", "vrrp",
-  "ng-ether", "ng-ether-vlan", "ng-ring", "ng-ring-bridge",
-  "ng-splitter", "ng-splitter-bridge", "ng-splitter-router",
-  "sfp+10g", "sff-10g", "sff+10g", "sfp+10g-bridge",
-  "sff-10g-bridge", "sff+10g-bridge",
-  "contiki", "tap", "lte", "modem",
-  "pim-tunnel", "pim-tunnel6",
-  "vrf", "user-manager",
-  "wireless-wds", "wlan-sae-loader",
-  "capi", "capi/channel", "isl", "ppp-client", "sppcie",
-  "slarc", "slbrc", "slc", "slr", "vti", "vti6",
-  "ijp", "ijp6", "pppc", "iijp", "iijp6",
-  "l2tp-vpnc", "pptp-vpnc", "pptp-vpn6c", "sstp-vpnc",
-  "pppoe-vpnc", "sstpc",
-  "wwan", "wwan/ppp",
-  "bgp", "bgp6",
+  "ether",
+  "bridge",
+  "veth",
+  "vlan",
+  "bonding",
+  "wireguard",
+  "wireguard-peer",
+  "pppoe-client",
+  "pppoe-server",
+  "l2tp-client",
+  "l2tp-server",
+  "pptp-client",
+  "pptp-server",
+  "ppp-to-ether",
+  "ovs-patch",
+  "ovs",
+  "simple-switch",
+  "bridge-vlan",
+  "dot1x-ap-client",
+  "dot1x-client",
+  "dot1x-server",
+  "dot1x",
+  "gre",
+  "gre6",
+  "ipip",
+  "ipoe",
+  "ipsec",
+  "iwarp",
+  "bridge-ppp-client",
+  "bridge-ppp-server",
+  "pppoe-to-ether-client",
+  "pppoe-to-ether-server",
+  "pptp-to-ether-client",
+  "pptp-to-ether-server",
+  "l2tp-to-ether-client",
+  "l2tp-to-ether-server",
+  "wireless",
+  "wifi",
+  "wifi-wwdn",
+  "wireless-wds",
+  "wifi-vap",
+  "wifi-wwdn-vap",
+  "wifi-loading",
+  "wlan-sae-loader",
+  "uftp-client",
+  "uftp-server",
+  "sstpc-client",
+  "sstpc-server",
+  "statistics",
+  "bgp-filter",
+  "vrrp",
+  "ng-ether",
+  "ng-ether-vlan",
+  "ng-ring",
+  "ng-ring-bridge",
+  "ng-splitter",
+  "ng-splitter-bridge",
+  "ng-splitter-router",
+  "sfp+10g",
+  "sff-10g",
+  "sff+10g",
+  "sfp+10g-bridge",
+  "sff-10g-bridge",
+  "sff+10g-bridge",
+  "contiki",
+  "tap",
+  "lte",
+  "modem",
+  "pim-tunnel",
+  "pim-tunnel6",
+  "vrf",
+  "user-manager",
+  "wireless-wds",
+  "wlan-sae-loader",
+  "capi",
+  "capi/channel",
+  "isl",
+  "ppp-client",
+  "sppcie",
+  "slarc",
+  "slbrc",
+  "slc",
+  "slr",
+  "vti",
+  "vti6",
+  "ijp",
+  "ijp6",
+  "pppc",
+  "iijp",
+  "iijp6",
+  "l2tp-vpnc",
+  "pptp-vpnc",
+  "pptp-vpn6c",
+  "sstp-vpnc",
+  "pppoe-vpnc",
+  "sstpc",
+  "wwan",
+  "wwan/ppp",
+  "bgp",
+  "bgp6",
 ];
 
 /** Known `kind` values from `/certificate` print. */
-export type RouterOSCertsKind =
-  | "imported" | "rsasign" | "ecsign" | "ed25519sign" | "unknown";
+export type RouterOSCertsKind = "imported" | "rsasign" | "ecsign" | "ed25519sign" | "unknown";
 
 /** Runtime const array for RouterOSCertsKind iteration. */
 export const CERTS_KINDS: readonly RouterOSCertsKind[] = [
-  "imported", "rsasign", "ecsign", "ed25519sign", "unknown",
+  "imported",
+  "rsasign",
+  "ecsign",
+  "ed25519sign",
+  "unknown",
 ];
 
 /** Known `chain` values for `/ip/firewall/filter`. */
-export type FirewallFilterChain =
-  | "forward" | "input" | "output";
+export type FirewallFilterChain = "forward" | "input" | "output";
 
 /** Runtime const array for FirewallFilterChain iteration. */
 export const FIREWALL_FILTER_CHAINS: readonly FirewallFilterChain[] = [
-  "forward", "input", "output",
+  "forward",
+  "input",
+  "output",
 ];
 
 /** Known `action` values for `/ip/firewall/filter`. */
 export type FirewallFilterAction =
-  | "accept" | "drop" | "reject" | "add-src-to-address-list"
-  | "add-dst-to-address-list" | "return" | "jump" | "log" | "chain"
-  | "passthru" | "src-nat" | "dst-nat" | "redirect" | "mongrel"
-  | "snort" | "fasttrack-connection" | "sample" | "accept-with-pool"
+  | "accept"
+  | "drop"
+  | "reject"
+  | "add-src-to-address-list"
+  | "add-dst-to-address-list"
+  | "return"
+  | "jump"
+  | "log"
+  | "chain"
+  | "passthru"
+  | "src-nat"
+  | "dst-nat"
+  | "redirect"
+  | "mongrel"
+  | "snort"
+  | "fasttrack-connection"
+  | "sample"
+  | "accept-with-pool"
   | "reset-and-repeat";
 
 /** Runtime const array for FirewallFilterAction iteration. */
 export const FIREWALL_FILTER_ACTIONS: readonly FirewallFilterAction[] = [
-  "accept", "drop", "reject", "add-src-to-address-list",
-  "add-dst-to-address-list", "return", "jump", "log", "chain",
-  "passthru", "sample", "src-nat", "dst-nat", "redirect",
+  "accept",
+  "drop",
+  "reject",
+  "add-src-to-address-list",
+  "add-dst-to-address-list",
+  "return",
+  "jump",
+  "log",
+  "chain",
+  "passthru",
+  "sample",
+  "src-nat",
+  "dst-nat",
+  "redirect",
 ];
 
 // ─── Discriminated DTO types ──────────────────────────────────────────────────
@@ -506,8 +680,16 @@ export type RouterOSFirewallNatRule = RouterOSFirewallRuleBase & {
 export type RouterOSFirewallMangleRule = RouterOSFirewallRuleBase & {
   table: "mangle";
   chain?: "prerouting" | "postrouting" | "forward" | "input" | "output";
-  action?: "accept" | "drop" | "change-mss" | "clamp-ttl" | "set-ttl"
-  | "mark-connection" | "mark-routing" | "mark-packet" | "change-tcp-mss";
+  action?:
+    | "accept"
+    | "drop"
+    | "change-mss"
+    | "clamp-ttl"
+    | "set-ttl"
+    | "mark-connection"
+    | "mark-routing"
+    | "mark-packet"
+    | "change-tcp-mss";
 };
 
 /** Raw table rule — `table: "raw"`. */
@@ -517,7 +699,8 @@ export type RouterOSFirewallRawRule = RouterOSFirewallRuleBase & {
   action?: "accept" | "notrack" | "add-src-to-address-list" | "add-dst-to-address-list";
 };
 
-export type RouterOSFirewallRule = RouterOSFirewallFilterRuleTyped
+export type RouterOSFirewallRule =
+  | RouterOSFirewallFilterRuleTyped
   | RouterOSFirewallNatRule
   | RouterOSFirewallMangleRule
   | RouterOSFirewallRawRule;
@@ -587,13 +770,13 @@ export type RouterOSHelpers = {
           name: string;
           slaves: string | readonly string[];
           mode?:
-          | "802.3ad"
-          | "balance-xor"
-          | "active-backup"
-          | "balance-rr"
-          | "broadcast"
-          | "balance-tlb"
-          | "balance-alb";
+            | "802.3ad"
+            | "balance-xor"
+            | "active-backup"
+            | "balance-rr"
+            | "broadcast"
+            | "balance-tlb"
+            | "balance-alb";
           "lacp-rate"?: "30secs" | "1sec";
           "mlag-id"?: string | number;
           "transmit-hash-policy"?: string;
@@ -967,7 +1150,11 @@ function parseInterface(raw: RouterOSRecord): RouterOSInterface {
 export function parseInterfaceDiscriminated(raw: RouterOSRecord): RouterOSInterfaceDiscriminated {
   const parsed = parseInterface(raw);
   const type = raw["type"];
-  if (type !== undefined && type !== "" && INTERFACE_KINDS.includes(type as RouterOSInterfaceKind)) {
+  if (
+    type !== undefined &&
+    type !== "" &&
+    INTERFACE_KINDS.includes(type as RouterOSInterfaceKind)
+  ) {
     return { ...parsed, kind: "known", type: type as RouterOSInterfaceKind };
   }
   const unknownType = type ?? parsed.type;
@@ -1683,13 +1870,13 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
             name: string;
             slaves: string | readonly string[];
             mode?:
-            | "802.3ad"
-            | "balance-xor"
-            | "active-backup"
-            | "balance-rr"
-            | "broadcast"
-            | "balance-tlb"
-            | "balance-alb";
+              | "802.3ad"
+              | "balance-xor"
+              | "active-backup"
+              | "balance-rr"
+              | "broadcast"
+              | "balance-tlb"
+              | "balance-alb";
             "lacp-rate"?: "30secs" | "1sec";
             "mlag-id"?: string | number;
             "transmit-hash-policy"?: string;
@@ -2006,7 +2193,9 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
               .print("/ip/firewall/filter", toPrintOptions(options))
               .then((records) => records.map(parseFirewallFilterRule));
           },
-          async watch(options: RouterOSWatchOptions = {}): Promise<TypedStream<RouterOSFirewallFilterRule>> {
+          async watch(
+            options: RouterOSWatchOptions = {}
+          ): Promise<TypedStream<RouterOSFirewallFilterRule>> {
             const factory = createWatch({
               transport: client,
               printPath: "/ip/firewall/filter",
