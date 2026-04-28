@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
 
     runs-on: ubuntu-latest
-   Timeout-minutes: 15
+    timeout-minutes: 15
     name: ${{ matrix.label }}
 
     steps:

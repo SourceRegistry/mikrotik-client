@@ -1,12 +1,7 @@
 import net from "node:net";
 import tls from "node:tls";
 import { EventEmitter } from "node:events";
-import {
-  SentenceDecoder,
-  createDeferred,
-  encodeSentence,
-  withTimeout,
-} from "../shared";
+import { SentenceDecoder, createDeferred, encodeSentence, withTimeout } from "../shared";
 import { createRouterOSHelpers, type RouterOSHelpers } from "./helpers";
 import type { DeviceTransport } from "./transport";
 
@@ -79,10 +74,7 @@ export type RouterOSApiBranch = {
   set: (options?: RouterOSCommandOptions) => Promise<RouterOSCommandResult>;
   remove: (options?: RouterOSCommandOptions) => Promise<RouterOSCommandResult>;
   listen: (options?: RouterOSListenOptions) => Promise<RouterOSStream>;
-  command: (
-    command: string,
-    options?: RouterOSCommandOptions
-  ) => Promise<RouterOSCommandResult>;
+  command: (command: string, options?: RouterOSCommandOptions) => Promise<RouterOSCommandResult>;
 };
 
 export class RouterOSTrapError extends Error {
@@ -156,13 +148,7 @@ function parseReply(words: string[]): RouterOSReply {
   const head = words[0]!;
   const tail = words.slice(1);
   const type = head.startsWith("!") ? head.slice(1) : head;
-  if (
-    type !== "re" &&
-    type !== "done" &&
-    type !== "trap" &&
-    type !== "empty" &&
-    type !== "fatal"
-  ) {
+  if (type !== "re" && type !== "done" && type !== "trap" && type !== "empty" && type !== "fatal") {
     throw new Error(`Unsupported RouterOS reply word: ${head}`);
   }
 
@@ -195,10 +181,7 @@ function parseReply(words: string[]): RouterOSReply {
   };
 }
 
-function createApiBranch(
-  client: RouterOSClient,
-  segments: string[] = []
-): RouterOSApiBranch {
+function createApiBranch(client: RouterOSClient, segments: string[] = []): RouterOSApiBranch {
   const branch = {
     path(segment: string) {
       return createApiBranch(client, [...segments, segment]);
@@ -247,7 +230,9 @@ function createApiBranch(
 export class RouterOSStream extends EventEmitter implements AsyncIterable<RouterOSReply> {
   public readonly tag: string;
   private readonly queue: RouterOSReply[] = [];
-  private readonly waiters: Array<ReturnType<typeof createDeferred<IteratorResult<RouterOSReply>>>> = [];
+  private readonly waiters: Array<
+    ReturnType<typeof createDeferred<IteratorResult<RouterOSReply>>>
+  > = [];
   private finished = false;
   private finishError?: unknown;
   private readonly cancelFn: () => Promise<void>;
@@ -359,7 +344,7 @@ export class RouterOSClient implements DeviceTransport {
     this.wireguard = helpers.wireguard;
     this.ppp = helpers.ppp;
     this.routing = helpers.routing;
-    if (!this.options.port) this.options.port = this.options.tls? 8729: 8729
+    if (!this.options.port) this.options.port = this.options.tls ? 8729 : 8729;
   }
 
   async connect(): Promise<this> {
@@ -440,18 +425,18 @@ export class RouterOSClient implements DeviceTransport {
         const timer =
           this.options.timeoutMs && this.options.timeoutMs > 0
             ? setTimeout(() => {
-              if (settled) {
-                return;
-              }
-              settled = true;
-              cleanup();
-              socket.destroy();
-              reject(
-                new Error(
-                  `RouterOS connection timed out to ${this.options.host}:${this.options.port ?? (this.options.tls ? 8729 : 8728)}`
-                )
-              );
-            }, this.options.timeoutMs)
+                if (settled) {
+                  return;
+                }
+                settled = true;
+                cleanup();
+                socket.destroy();
+                reject(
+                  new Error(
+                    `RouterOS connection timed out to ${this.options.host}:${this.options.port ?? (this.options.tls ? 8729 : 8728)}`
+                  )
+                );
+              }, this.options.timeoutMs)
             : undefined;
 
         socket.once(connectEvent, onReady);
@@ -563,10 +548,7 @@ export class RouterOSClient implements DeviceTransport {
     }
   }
 
-  async listen(
-    command: string,
-    options: RouterOSListenOptions = {}
-  ): Promise<RouterOSStream> {
+  async listen(command: string, options: RouterOSListenOptions = {}): Promise<RouterOSStream> {
     await this.connect();
     const tag = options.tag ?? this.createTag();
     const stream = new RouterOSStream(tag, () => this.cancel(tag));
@@ -589,10 +571,7 @@ export class RouterOSClient implements DeviceTransport {
     return stream;
   }
 
-  async print(
-    command: string,
-    options: RouterOSCommandOptions = {}
-  ): Promise<RouterOSRecord[]> {
+  async print(command: string, options: RouterOSCommandOptions = {}): Promise<RouterOSRecord[]> {
     const result = await this.execute(`${normalizeCommand(command)}/print`, options);
     return result.records;
   }
@@ -733,8 +712,6 @@ export class RouterOSClient implements DeviceTransport {
     }
     this.pending.clear();
   }
-
-
 }
 
 export * from "./helpers";

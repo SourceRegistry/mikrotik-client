@@ -1,8 +1,4 @@
-import {
-  discoverNeighbors,
-  type DiscoveredNeighbor,
-  RouterOSClient,
-} from "../src";
+import { discoverNeighbors, type DiscoveredNeighbor, RouterOSClient } from "../src";
 
 function summarize(device: DiscoveredNeighbor) {
   return {
@@ -64,10 +60,14 @@ async function main() {
 
   const candidate =
     directCandidateFromEnv() ??
-    devices.find((device) => device.source === "mndp" && device.address && device.address !== "0.0.0.0");
+    devices.find(
+      (device) => device.source === "mndp" && device.address && device.address !== "0.0.0.0"
+    );
   if (!candidate?.address) {
     console.log("No reachable neighbor found over MNDP.");
-    console.log("Set MIKROTIK_HOST and optionally MIKROTIK_PORT / MIKROTIK_TLS for direct connection.");
+    console.log(
+      "Set MIKROTIK_HOST and optionally MIKROTIK_PORT / MIKROTIK_TLS for direct connection."
+    );
     return;
   }
 

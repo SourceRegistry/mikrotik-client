@@ -56,7 +56,9 @@ function fromMNDP(advertisement: MNDPAdvertisement): DiscoveredNeighbor {
     ...(advertisement.platform !== undefined && { platform: advertisement.platform }),
     ...(advertisement.versionString !== undefined && { version: advertisement.versionString }),
     ...(advertisement.hardware !== undefined && { hardware: advertisement.hardware }),
-    ...(advertisement.interfaceName !== undefined && { interfaceName: advertisement.interfaceName }),
+    ...(advertisement.interfaceName !== undefined && {
+      interfaceName: advertisement.interfaceName,
+    }),
     address: advertisement.remoteAddress,
     raw: advertisement,
   };
@@ -78,7 +80,8 @@ function dedupeNeighbors(neighbors: readonly DiscoveredNeighbor[]): DiscoveredNe
 
 export class NeighborDiscoveryService
   extends EventEmitter<NeighborDiscoveryEventMap<DiscoveredNeighbor>>
-  implements AsyncIterable<DiscoveredNeighbor> {
+  implements AsyncIterable<DiscoveredNeighbor>
+{
   private readonly queue: DiscoveredNeighbor[] = [];
   private readonly waiters: Array<{
     resolve: (result: IteratorResult<DiscoveredNeighbor>) => void;
@@ -97,38 +100,51 @@ export class NeighborDiscoveryService
     this.finish(error);
   };
 
-  public constructor(
-    private readonly options: ListenNeighborsOptions = {}
-  ) {
+  public constructor(private readonly options: ListenNeighborsOptions = {}) {
     super();
     this.dedupe = options.dedupe ?? true;
   }
 
-  public on<K extends NeighborDiscoveryEventName>(eventName: K, listener: NeighborDiscoveryEventListener<K>): this;
+  public on<K extends NeighborDiscoveryEventName>(
+    eventName: K,
+    listener: NeighborDiscoveryEventListener<K>
+  ): this;
   public on(eventName: string | symbol, listener: (...args: unknown[]) => void): this;
   public on(eventName: string | symbol, listener: (...args: unknown[]) => void): this {
     return super.on(eventName, listener);
   }
 
-  public once<K extends NeighborDiscoveryEventName>(eventName: K, listener: NeighborDiscoveryEventListener<K>): this;
+  public once<K extends NeighborDiscoveryEventName>(
+    eventName: K,
+    listener: NeighborDiscoveryEventListener<K>
+  ): this;
   public once(eventName: string | symbol, listener: (...args: unknown[]) => void): this;
   public once(eventName: string | symbol, listener: (...args: unknown[]) => void): this {
     return super.once(eventName, listener);
   }
 
-  public off<K extends NeighborDiscoveryEventName>(eventName: K, listener: NeighborDiscoveryEventListener<K>): this;
+  public off<K extends NeighborDiscoveryEventName>(
+    eventName: K,
+    listener: NeighborDiscoveryEventListener<K>
+  ): this;
   public off(eventName: string | symbol, listener: (...args: unknown[]) => void): this;
   public off(eventName: string | symbol, listener: (...args: unknown[]) => void): this {
     return super.off(eventName, listener);
   }
 
-  public addListener<K extends NeighborDiscoveryEventName>(eventName: K, listener: NeighborDiscoveryEventListener<K>): this;
+  public addListener<K extends NeighborDiscoveryEventName>(
+    eventName: K,
+    listener: NeighborDiscoveryEventListener<K>
+  ): this;
   public addListener(eventName: string | symbol, listener: (...args: unknown[]) => void): this;
   public addListener(eventName: string | symbol, listener: (...args: unknown[]) => void): this {
     return super.addListener(eventName, listener);
   }
 
-  public removeListener<K extends NeighborDiscoveryEventName>(eventName: K, listener: NeighborDiscoveryEventListener<K>): this;
+  public removeListener<K extends NeighborDiscoveryEventName>(
+    eventName: K,
+    listener: NeighborDiscoveryEventListener<K>
+  ): this;
   public removeListener(eventName: string | symbol, listener: (...args: unknown[]) => void): this;
   public removeListener(eventName: string | symbol, listener: (...args: unknown[]) => void): this {
     return super.removeListener(eventName, listener);

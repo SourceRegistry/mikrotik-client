@@ -119,17 +119,11 @@ export class ConnectionPool<T extends DeviceTransport> implements DeviceTranspor
     private readonly disposeTransport?: (t: T) => Promise<void>
   ) {
     if (config.heartbeatMs > 0) {
-      this.heartbeatTimer = setInterval(
-        () => void this.runHeartbeat(),
-        config.heartbeatMs
-      );
+      this.heartbeatTimer = setInterval(() => void this.runHeartbeat(), config.heartbeatMs);
     }
     if (config.idleTimeoutMs > 0) {
       const checkInterval = Math.min(config.idleTimeoutMs, 10_000);
-      this.idleTimer = setInterval(
-        () => void this.pruneIdle(),
-        checkInterval
-      );
+      this.idleTimer = setInterval(() => void this.pruneIdle(), checkInterval);
     }
     // Pre-warm minimum connections
     if (config.min > 0) {
@@ -145,7 +139,10 @@ export class ConnectionPool<T extends DeviceTransport> implements DeviceTranspor
    * if below `max`; otherwise waits up to `acquireTimeoutMs`.
    */
   async acquire(signal?: AbortSignal, context?: MikrotikErrorContext): Promise<T> {
-    if (this.closed) throw new PoolAcquireTimeoutError("Pool is closed", { ...(context !== undefined && { context }) });
+    if (this.closed)
+      throw new PoolAcquireTimeoutError("Pool is closed", {
+        ...(context !== undefined && { context }),
+      });
 
     // Prefer idle
     while (this.idle.length > 0) {
@@ -332,8 +329,7 @@ export class ConnectionPool<T extends DeviceTransport> implements DeviceTranspor
 
     for (const entry of this.idle) {
       const wouldGoBelowMin = this.size - toPrune.length - 1 < this.config.min;
-      const shouldPrune =
-        !wouldGoBelowMin && now - entry.lastUsedMs >= threshold;
+      const shouldPrune = !wouldGoBelowMin && now - entry.lastUsedMs >= threshold;
       if (shouldPrune) {
         toPrune.push(entry.transport);
       } else {

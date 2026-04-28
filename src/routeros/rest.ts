@@ -36,7 +36,11 @@ export class RouterOSRestTrapError extends MikrotikError {
   /** HTTP status code. */
   public readonly httpStatus: number;
 
-  public constructor(detail: string, httpStatus: number, options?: { context?: MikrotikErrorContext }) {
+  public constructor(
+    detail: string,
+    httpStatus: number,
+    options?: { context?: MikrotikErrorContext }
+  ) {
     super(detail, options);
     this.name = "RouterOSRestTrapError";
     this.detail = detail;
@@ -90,7 +94,11 @@ export class RouterOSRestProtocolError extends MikrotikError {
   /** HTTP status code (0 if the error is not HTTP-level). */
   public readonly httpStatus: number;
 
-  public constructor(message: string, httpStatus: number, options?: { context?: MikrotikErrorContext }) {
+  public constructor(
+    message: string,
+    httpStatus: number,
+    options?: { context?: MikrotikErrorContext }
+  ) {
     super(message, options);
     this.name = "RouterOSRestProtocolError";
     this.httpStatus = httpStatus;
@@ -346,7 +354,7 @@ export class RouterOSRestClient implements DeviceTransport {
   ): Promise<Response> {
     const headers: Record<string, string> = {
       "content-type": "application/json",
-      "accept": "application/json",
+      accept: "application/json",
     };
     const auth = this.authHeader();
     if (auth) headers["authorization"] = auth;
@@ -470,10 +478,7 @@ export class RouterOSRestClient implements DeviceTransport {
    * });
    * ```
    */
-  async print(
-    command: string,
-    options: RouterOSCommandOptions = {}
-  ): Promise<RouterOSRecord[]> {
+  async print(command: string, options: RouterOSCommandOptions = {}): Promise<RouterOSRecord[]> {
     const normalized = normalizePath(command);
     // Strip /print suffix if already present (RouterOSClient.print appends it)
     const basePath = normalized.endsWith("/print")
@@ -498,8 +503,7 @@ export class RouterOSRestClient implements DeviceTransport {
       if (key !== ".proplist") nonProplistAttrs[key] = value;
     }
     const hasBodyFilters =
-      Object.keys(nonProplistAttrs).length > 0 ||
-      (options.queries && options.queries.length > 0);
+      Object.keys(nonProplistAttrs).length > 0 || (options.queries && options.queries.length > 0);
 
     let url: string;
     let method: "GET" | "POST";

@@ -212,7 +212,7 @@ class SwitchOSLiteralParser {
         switch (escaped) {
           case "\\":
           case "'":
-          case "\"":
+          case '"':
             output += escaped;
             break;
           case "n":
@@ -398,7 +398,7 @@ function parseDigestChallenge(header: string | null): DigestChallenge | undefine
     const index = match.indexOf("=");
     const key = match.slice(0, index).trim().toLowerCase();
     let raw = match.slice(index + 1).trim();
-    if (raw.startsWith("\"") && raw.endsWith("\"")) {
+    if (raw.startsWith('"') && raw.endsWith('"')) {
       raw = raw.slice(1, -1).replace(/\\(.)/g, "$1");
     }
     values.set(key, raw);
@@ -436,7 +436,10 @@ function buildDigestAuthorization(
 
   const nc = nonceCount.toString(16).padStart(8, "0");
   const cnonce = randomBytes(8).toString("hex");
-  const qop = challenge.qop?.split(",").map((item) => item.trim()).find((item) => item === "auth");
+  const qop = challenge.qop
+    ?.split(",")
+    .map((item) => item.trim())
+    .find((item) => item === "auth");
   const ha1 = md5(`${username}:${challenge.realm}:${password}`);
   const ha2 = md5(`${method.toUpperCase()}:${uri}`);
 
@@ -463,13 +466,19 @@ function buildDigestAuthorization(
   return `Digest ${parts.join(", ")}`;
 }
 
-function withTimeout(signal: AbortSignal | undefined, timeoutMs: number | undefined): AbortSignal | undefined {
+function withTimeout(
+  signal: AbortSignal | undefined,
+  timeoutMs: number | undefined
+): AbortSignal | undefined {
   if (!timeoutMs || timeoutMs <= 0) {
     return signal;
   }
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(new Error(`SwitchOS request timed out after ${timeoutMs}ms`)), timeoutMs);
+  const timer = setTimeout(
+    () => controller.abort(new Error(`SwitchOS request timed out after ${timeoutMs}ms`)),
+    timeoutMs
+  );
 
   signal?.addEventListener(
     "abort",
@@ -523,17 +532,15 @@ export function decodeSwitchOSHexString(value: string): string {
 
 export function encodeSwitchOSIpv4(value: string): number {
   const octets = value.split(".").map((part) => Number.parseInt(part, 10));
-  if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+  if (
+    octets.length !== 4 ||
+    octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)
+  ) {
     throw new TypeError(`Invalid IPv4 address: ${value}`);
   }
 
   // safe: length === 4 and all values are integers 0–255 verified above
-  return (
-    octets[0]! |
-    (octets[1]! << 8) |
-    (octets[2]! << 16) |
-    (octets[3]! << 24)
-  ) >>> 0;
+  return (octets[0]! | (octets[1]! << 8) | (octets[2]! << 16) | (octets[3]! << 24)) >>> 0;
 }
 
 export function decodeSwitchOSIpv4(value: number): string {
@@ -541,12 +548,9 @@ export function decodeSwitchOSIpv4(value: number): string {
     throw new TypeError(`Invalid SwOS IPv4 integer: ${value}`);
   }
 
-  return [
-    value & 0xff,
-    (value >>> 8) & 0xff,
-    (value >>> 16) & 0xff,
-    (value >>> 24) & 0xff,
-  ].join(".");
+  return [value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff, (value >>> 24) & 0xff].join(
+    "."
+  );
 }
 
 export function encodeSwitchOSMac(value: string): string {
@@ -630,17 +634,26 @@ export class SwitchOSClient {
 
   public async write<T extends SwitchOSWireValue = SwitchOSWireValue>(
     path: string,
-    body: Exclude<SwitchOSRequestBody, FormData | URLSearchParams | ArrayBuffer | ArrayBufferView | Blob>,
+    body: Exclude<
+      SwitchOSRequestBody,
+      FormData | URLSearchParams | ArrayBuffer | ArrayBufferView | Blob
+    >,
     options: Omit<SwitchOSRequestOptions, "method" | "body"> = {}
   ): Promise<T> {
     return this.request<T>(path, { ...options, method: "POST", body });
   }
 
-  public async action(path: string, options: Omit<SwitchOSRequestOptions, "method" | "body"> = {}): Promise<void> {
+  public async action(
+    path: string,
+    options: Omit<SwitchOSRequestOptions, "method" | "body"> = {}
+  ): Promise<void> {
     await this.request(path, { ...options, method: "POST", body: "*", parse: false });
   }
 
-  public async download(path: string, options: Omit<SwitchOSRequestOptions, "method" | "body" | "parse"> = {}): Promise<Uint8Array> {
+  public async download(
+    path: string,
+    options: Omit<SwitchOSRequestOptions, "method" | "body" | "parse"> = {}
+  ): Promise<Uint8Array> {
     const request = this.buildRequest(path, {
       method: "GET",
       ...(options.headers !== undefined && { headers: options.headers }),
@@ -707,7 +720,11 @@ export class SwitchOSClient {
         if (!headers.has("content-type")) {
           headers.set("content-type", "text/plain");
         }
-      } else if (options.body instanceof URLSearchParams || options.body instanceof FormData || options.body instanceof Blob) {
+      } else if (
+        options.body instanceof URLSearchParams ||
+        options.body instanceof FormData ||
+        options.body instanceof Blob
+      ) {
         init.body = options.body;
       } else {
         init.body = Buffer.from(toUint8Array(options.body));

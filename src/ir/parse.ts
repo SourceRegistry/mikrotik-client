@@ -9,7 +9,7 @@ import {
   createEmptyConfig,
   isResourceBlock,
   IR_RESOURCE_COMMANDS,
-} from './types';
+} from "./types";
 
 // ─── Parser Options ───────────────────────────────────────────────────────────
 
@@ -25,12 +25,12 @@ export type ParseExportOptions = {
 
 /** Error thrown when `/export` text cannot be parsed. */
 export class ParseExportError extends Error {
-  public readonly code = 'parse_failed' as const;
+  public readonly code = "parse_failed" as const;
   public readonly line: number;
 
   public constructor(message: string, line: number) {
     super(message);
-    this.name = 'ParseExportError';
+    this.name = "ParseExportError";
     this.line = line;
   }
 }
@@ -38,16 +38,16 @@ export class ParseExportError extends Error {
 // ─── Tokenizer ────────────────────────────────────────────────────────────────
 
 type Token =
-  | { type: 'comment'; text: string }
-  | { type: 'path'; value: string }
-  | { type: 'bracketOpen' }
-  | { type: 'bracketClose' }
-  | { type: 'braceOpen' }
-  | { type: 'braceClose' }
-  | { type: 'word'; value: string }
-  | { type: 'quoted'; value: string }
-  | { type: 'newline' }
-  | { type: 'eof' };
+  | { type: "comment"; text: string }
+  | { type: "path"; value: string }
+  | { type: "bracketOpen" }
+  | { type: "bracketClose" }
+  | { type: "braceOpen" }
+  | { type: "braceClose" }
+  | { type: "word"; value: string }
+  | { type: "quoted"; value: string }
+  | { type: "newline" }
+  | { type: "eof" };
 
 function tokenize(text: string): Token[] {
   const tokens: Token[] = [];
@@ -57,50 +57,50 @@ function tokenize(text: string): Token[] {
     const ch = text[i];
 
     // Newline
-    if (ch === '\n') {
-      tokens.push({ type: 'newline' });
+    if (ch === "\n") {
+      tokens.push({ type: "newline" });
       i++;
       continue;
     }
     // Carriage return (skip)
-    if (ch === '\r') {
+    if (ch === "\r") {
       i++;
       continue;
     }
     // Whitespace (skip)
-    if (ch === ' ' || ch === '\t') {
+    if (ch === " " || ch === "\t") {
       i++;
       continue;
     }
 
     // Block comment (multiline) — `/* ... */`
-    if (ch === '/' && text[i + 1] === '*') {
-      let end = text.indexOf('*/', i + 2);
+    if (ch === "/" && text[i + 1] === "*") {
+      let end = text.indexOf("*/", i + 2);
       if (end < 0) end = text.length;
       else end += 2;
       const commentText = text.slice(i + 2, end).trim();
-      tokens.push({ type: 'comment', text: commentText });
+      tokens.push({ type: "comment", text: commentText });
       i = end;
       continue;
     }
 
     // Line comment — `#` or `//`
-    if (ch === '#' || (ch === '/' && text[i + 1] === '/')) {
+    if (ch === "#" || (ch === "/" && text[i + 1] === "/")) {
       const start = i;
-      if (ch === '/' && text[i + 1] === '/') i += 2;
+      if (ch === "/" && text[i + 1] === "/") i += 2;
       else i++;
-      while (i < text.length && text[i] !== '\n' && text[i] !== '\r') i++;
-      tokens.push({ type: 'comment', text: text.slice(start, i).trim() });
+      while (i < text.length && text[i] !== "\n" && text[i] !== "\r") i++;
+      tokens.push({ type: "comment", text: text.slice(start, i).trim() });
       continue;
     }
 
     // Quoted string — handles `\"` as escape
     if (ch === '"') {
       let j = i + 1;
-      let value = '';
+      let value = "";
       while (j < text.length) {
         const c = text[j];
-        if (c === '\\' && j + 1 < text.length) {
+        if (c === "\\" && j + 1 < text.length) {
           value += text[j + 1];
           j += 2;
           continue;
@@ -109,51 +109,59 @@ function tokenize(text: string): Token[] {
         value += c;
         j++;
       }
-      tokens.push({ type: 'quoted', value });
+      tokens.push({ type: "quoted", value });
       i = j + 1; // skip closing quote
       continue;
     }
 
     // Square brackets
-    if (ch === '[') {
-      tokens.push({ type: 'bracketOpen' });
+    if (ch === "[") {
+      tokens.push({ type: "bracketOpen" });
       i++;
       continue;
     }
-    if (ch === ']') {
-      tokens.push({ type: 'bracketClose' });
+    if (ch === "]") {
+      tokens.push({ type: "bracketClose" });
       i++;
       continue;
     }
 
     // Curly braces
-    if (ch === '{') {
-      tokens.push({ type: 'braceOpen' });
+    if (ch === "{") {
+      tokens.push({ type: "braceOpen" });
       i++;
       continue;
     }
-    if (ch === '}') {
-      tokens.push({ type: 'braceClose' });
+    if (ch === "}") {
+      tokens.push({ type: "braceClose" });
       i++;
       continue;
     }
 
     // Path — starts with `/`
-    if (ch === '/') {
+    if (ch === "/") {
       let j = i;
-      let path = '';
+      let path = "";
       while (j < text.length) {
         const c = text[j];
-        if (c === '/' && path.length > 0 && j + 1 < text.length && text[j + 1] !== ' ' && text[j + 1] !== '\n' && text[j + 1] !== '\r' && text[j + 1] !== '\t') {
-          path += '/';
+        if (
+          c === "/" &&
+          path.length > 0 &&
+          j + 1 < text.length &&
+          text[j + 1] !== " " &&
+          text[j + 1] !== "\n" &&
+          text[j + 1] !== "\r" &&
+          text[j + 1] !== "\t"
+        ) {
+          path += "/";
           j++;
           continue;
         }
-        if (c === ' ' || c === '\t' || c === '\n' || c === '\r') break;
+        if (c === " " || c === "\t" || c === "\n" || c === "\r") break;
         path += c;
         j++;
       }
-      tokens.push({ type: 'path', value: path });
+      tokens.push({ type: "path", value: path });
       i = j;
       continue;
     }
@@ -161,27 +169,35 @@ function tokenize(text: string): Token[] {
     // Regular word (including system commands starting with `:`)
     {
       let j = i;
-      let word = '';
+      let word = "";
       while (j < text.length) {
         const c = text[j];
         if (
-          c === ' ' || c === '\t' || c === '\n' || c === '\r' ||
-          c === '"' || c === '[' || c === ']' || c === '{' || c === '}' ||
-          c === '#' ||
-          (c === '/' && j + 1 < text.length && text[j + 1] === '/')
-        ) break;
+          c === " " ||
+          c === "\t" ||
+          c === "\n" ||
+          c === "\r" ||
+          c === '"' ||
+          c === "[" ||
+          c === "]" ||
+          c === "{" ||
+          c === "}" ||
+          c === "#" ||
+          (c === "/" && j + 1 < text.length && text[j + 1] === "/")
+        )
+          break;
         word += c;
         j++;
       }
       if (word.length > 0) {
-        tokens.push({ type: 'word', value: word });
+        tokens.push({ type: "word", value: word });
       }
       i = j;
       continue;
     }
   }
 
-  tokens.push({ type: 'eof' });
+  tokens.push({ type: "eof" });
   return tokens;
 }
 
@@ -198,7 +214,7 @@ class Parser {
   }
 
   get current(): Token {
-    return this.tokens[this.pos] ?? { type: 'eof' };
+    return this.tokens[this.pos] ?? { type: "eof" };
   }
 
   advance(): Token {
@@ -207,18 +223,15 @@ class Parser {
     return token;
   }
 
-  expect(type: Token['type']): Token & { value?: string; text?: string } {
+  expect(type: Token["type"]): Token & { value?: string; text?: string } {
     const token = this.current;
     if (token.type !== type) {
-      throw new ParseExportError(
-        `Expected ${type} but got ${token.type}`,
-        this.pos
-      );
+      throw new ParseExportError(`Expected ${type} but got ${token.type}`, this.pos);
     }
     return this.advance();
   }
 
-  skipIf(type: Token['type']): boolean {
+  skipIf(type: Token["type"]): boolean {
     if (this.current.type === type) {
       this.advance();
       return true;
@@ -232,69 +245,69 @@ class Parser {
 function parseValue(parser: Parser): string {
   const token = parser.current;
 
-  if (token.type === 'quoted') {
+  if (token.type === "quoted") {
     parser.advance();
     return token.value;
   }
-  if (token.type === 'word') {
+  if (token.type === "word") {
     parser.advance();
     return token.value;
   }
-  return '';
+  return "";
 }
 
 // ─── Parse Find Query (`[find ...]`) ──────────────────────────────────────────
 
 function parseFindQuery(parser: Parser): IRProperty[] {
   const props: IRProperty[] = [];
-  parser.expect('bracketOpen');
+  parser.expect("bracketOpen");
 
   // Skip the `find` keyword if present
-  if (parser.current.type === 'word' && parser.current.value === 'find') {
+  if (parser.current.type === "word" && parser.current.value === "find") {
     parser.advance();
   }
 
-  while (parser.current.type !== 'bracketClose' && parser.current.type !== 'eof') {
+  while (parser.current.type !== "bracketClose" && parser.current.type !== "eof") {
     const token = parser.current;
 
     // Skip operators
-    if (token.type === 'word' && ['!', 'and', 'or', 'not'].includes(token.value)) {
+    if (token.type === "word" && ["!", "and", "or", "not"].includes(token.value)) {
       parser.advance();
       continue;
     }
 
-    if (token.type === 'word' && token.value.includes('=')) {
+    if (token.type === "word" && token.value.includes("=")) {
       // Inline `key=value` token (common in find queries)
-      const eqIdx = token.value.indexOf('=');
+      const eqIdx = token.value.indexOf("=");
       const name = token.value.slice(0, eqIdx);
       let value = token.value.slice(eqIdx + 1);
       parser.advance();
-      if (value === '' && (parser.current.type === 'word' || parser.current.type === 'quoted')) {
+      if (value === "" && (parser.current.type === "word" || parser.current.type === "quoted")) {
         value = parseValue(parser);
       }
       props.push({ name, value });
-    } else if (token.type === 'word') {
+    } else if (token.type === "word") {
       const name = token.value;
       parser.advance();
 
       // Skip operator
-      if (parser.current.type === 'word' && ['=', '!=', '>', '<'].includes(parser.current.value)) {
+      if (parser.current.type === "word" && ["=", "!=", ">", "<"].includes(parser.current.value)) {
         parser.advance();
       }
 
       // Value
-      if (parser.current.type === 'word' || parser.current.type === 'quoted') {
+      if (parser.current.type === "word" || parser.current.type === "quoted") {
         const value = parseValue(parser);
         props.push({ name, value });
       } else {
-        props.push({ name, value: '' });
+        props.push({ name, value: "" });
       }
     } else {
       parser.advance();
     }
   }
 
-  parser.skipIf('bracketClose');
+  parser.skipIf("bracketClose");
   return props;
 }
 
@@ -304,41 +317,41 @@ function parseProperties(parser: Parser): IRProperty[] {
   const properties: IRProperty[] = [];
 
   while (
-    parser.current.type !== 'newline' &&
-    parser.current.type !== 'eof' &&
-    parser.current.type !== 'comment'
+    parser.current.type !== "newline" &&
+    parser.current.type !== "eof" &&
+    parser.current.type !== "comment"
   ) {
     const token = parser.current;
 
-    if (token.type === 'bracketOpen') {
+    if (token.type === "bracketOpen") {
       // Skip bracket pairs (find queries already consumed, but handle edge cases)
       let depth = 0;
       while (parser.pos < parser.tokens.length) {
         const cur = parser.current;
-        if (cur.type === 'bracketOpen') depth++;
-        else if (cur.type === 'bracketClose') depth--;
+        if (cur.type === "bracketOpen") depth++;
+        else if (cur.type === "bracketClose") depth--;
         parser.advance();
         if (depth <= 0) break;
       }
       continue;
     }
 
-    if (token.type === 'word' && token.value.includes('=')) {
-      const eqIdx = token.value.indexOf('=');
+    if (token.type === "word" && token.value.includes("=")) {
+      const eqIdx = token.value.indexOf("=");
       const name = token.value.slice(0, eqIdx);
       let value = token.value.slice(eqIdx + 1);
       parser.advance();
 
       // If value is empty, check for following value token (word or quoted)
-      if (value === '' && (parser.current.type === 'word' || parser.current.type === 'quoted')) {
+      if (value === "" && (parser.current.type === "word" || parser.current.type === "quoted")) {
         value = parseValue(parser);
       }
 
       properties.push({ name, value });
-    } else if (token.type === 'word') {
+    } else if (token.type === "word") {
       // Could be a bare word — skip it
       parser.advance();
-    } else if (token.type === 'quoted') {
+    } else if (token.type === "quoted") {
       // Standalone quoted value — skip
       parser.advance();
     } else {
@@ -352,16 +365,16 @@ function parseProperties(parser: Parser): IRProperty[] {
 // ─── Parse Block (`{ ... }`) ──────────────────────────────────────────────────
 
 function parseBlock(parser: Parser): IRBlock {
-  parser.expect('braceOpen');
+  parser.expect("braceOpen");
   const items: IRItem[] = [];
 
-  while (parser.current.type !== 'braceClose' && parser.current.type !== 'eof') {
-    if (parser.current.type === 'newline') {
+  while (parser.current.type !== "braceClose" && parser.current.type !== "eof") {
+    if (parser.current.type === "newline") {
       parser.advance();
       continue;
     }
-    if (parser.current.type === 'comment') {
-      items.push({ kind: 'comment', text: parser.current.text });
+    if (parser.current.type === "comment") {
+      items.push({ kind: "comment", text: parser.current.text });
       parser.advance();
       continue;
     }
@@ -372,21 +385,21 @@ function parseBlock(parser: Parser): IRBlock {
     }
   }
 
-  parser.skipIf('braceClose');
-  return { kind: 'block', items };
+  parser.skipIf("braceClose");
+  return { kind: "block", items };
 }
 
 // ─── Parse System Command ─────────────────────────────────────────────────────
 
 function parseSystemCommand(parser: Parser): IRSystemCommand | null {
   const token = parser.current;
-  if (token.type !== 'word' || !token.value.startsWith(':')) {
+  if (token.type !== "word" || !token.value.startsWith(":")) {
     return null;
   }
 
   const parts: string[] = [];
-  while (parser.current.type !== 'newline' && parser.current.type !== 'eof') {
-    if (parser.current.type === 'word' || parser.current.type === 'quoted') {
+  while (parser.current.type !== "newline" && parser.current.type !== "eof") {
+    if (parser.current.type === "word" || parser.current.type === "quoted") {
       parts.push(parser.current.value);
       parser.advance();
     } else {
@@ -395,7 +408,7 @@ function parseSystemCommand(parser: Parser): IRSystemCommand | null {
   }
 
   if (parts.length === 0) return null;
-  return { kind: 'system', command: parts.join(' ') };
+  return { kind: "system", command: parts.join(" ") };
 }
 
 // ─── Parse Single Item ────────────────────────────────────────────────────────
@@ -404,61 +417,61 @@ function parseItem(parser: Parser): IRItem | null {
   const token = parser.current;
 
   // Comment
-  if (token.type === 'comment') {
+  if (token.type === "comment") {
     parser.advance();
-    return { kind: 'comment', text: token.text };
+    return { kind: "comment", text: token.text };
   }
 
   // Block
-  if (token.type === 'braceOpen') {
+  if (token.type === "braceOpen") {
     return parseBlock(parser);
   }
 
   // System command
-  if (token.type === 'word' && token.value.startsWith(':')) {
+  if (token.type === "word" && token.value.startsWith(":")) {
     return parseSystemCommand(parser);
   }
 
   // Command-only line (inside a block context): e.g. `add name=bridge1`
-  if (token.type === 'word' && (IR_RESOURCE_COMMANDS as readonly string[]).includes(token.value)) {
+  if (token.type === "word" && (IR_RESOURCE_COMMANDS as readonly string[]).includes(token.value)) {
     const command = token.value as IRResourceCommand;
     parser.advance();
     const properties = parseProperties(parser);
-    return { kind: 'resource', path: '', command, properties };
+    return { kind: "resource", path: "", command, properties };
   }
 
   // Resource path
-  if (token.type === 'path') {
+  if (token.type === "path") {
     parser.advance();
     const COMMAND_KEYWORDS = new Set<string>(IR_RESOURCE_COMMANDS);
 
     // Collect multi-word path segments (e.g. `/interface bridge`, `/ip firewall filter`)
     let path = token.value;
-    while (parser.current.type === 'word' && !COMMAND_KEYWORDS.has(parser.current.value)) {
-      path += ' ' + parser.current.value;
+    while (parser.current.type === "word" && !COMMAND_KEYWORDS.has(parser.current.value)) {
+      path += " " + parser.current.value;
       parser.advance();
     }
 
     // Block grouping: `/path { add name=x; add name=y }`
-    if (parser.current.type === 'braceOpen') {
+    if (parser.current.type === "braceOpen") {
       const block = parseBlock(parser);
       return block;
     }
 
     // Command
     let command: IRResourceCommand;
-    if (parser.current.type === 'word' && COMMAND_KEYWORDS.has(parser.current.value)) {
+    if (parser.current.type === "word" && COMMAND_KEYWORDS.has(parser.current.value)) {
       command = parser.current.value as IRResourceCommand;
       parser.advance();
     } else {
-      command = 'add';
+      command = "add";
     }
 
     // Find query
     let findQuery: IRProperty[] | undefined;
     if (
-      ['set', 'remove', 'disable', 'enable'].includes(command) &&
-      parser.current.type === 'bracketOpen'
+      ["set", "remove", "disable", "enable"].includes(command) &&
+      parser.current.type === "bracketOpen"
     ) {
       findQuery = parseFindQuery(parser);
     }
@@ -467,7 +480,7 @@ function parseItem(parser: Parser): IRItem | null {
     const properties = parseProperties(parser);
 
     const result: IRResourceBlock = {
-      kind: 'resource',
+      kind: "resource",
       path,
       command,
       properties,
@@ -512,11 +525,11 @@ export function parseExport(text: string, options?: ParseExportOptions): RouterO
   const config = createEmptyConfig();
   const { preserveBlankLines = false } = options ?? {};
 
-  while (parser.current.type !== 'eof') {
+  while (parser.current.type !== "eof") {
     // Handle blank lines
-    if (parser.current.type === 'newline') {
+    if (parser.current.type === "newline") {
       if (preserveBlankLines) {
-        config.items.push({ kind: 'comment', text: '' });
+        config.items.push({ kind: "comment", text: "" });
       }
       parser.advance();
       continue;
@@ -533,12 +546,8 @@ export function parseExport(text: string, options?: ParseExportOptions): RouterO
       config.items.push(item);
 
       // Extract identity if present
-      if (
-        isResourceBlock(item) &&
-        item.path === '/system identity' &&
-        item.command === 'set'
-      ) {
-        const nameProp = item.properties.find((p) => p.name === 'name');
+      if (isResourceBlock(item) && item.path === "/system identity" && item.command === "set") {
+        const nameProp = item.properties.find((p) => p.name === "name");
         if (nameProp) {
           config.identity = nameProp.value;
         }

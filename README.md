@@ -27,58 +27,58 @@ This library is intended to be stable.
 
 ## Feature Matrix
 
-| Capability | RouterOS | SwitchOS |
-| --- | --- | --- |
-| Connect/authenticate | Yes, binary API over TCP or API-SSL | Yes, HTTP digest auth |
-| Raw command execution | Yes, `execute(...)` | No CLI surface; use endpoint `read`/`write`/`action` |
-| SSH command execution | Yes, via local `ssh` executable | No |
-| Dynamic path API | Yes, `client.api...` | No |
-| Typed helper layer | Yes, documented/common menus only | No stable typed helper layer |
-| Read menu data | Yes | Yes |
-| Write configuration | Yes | Yes |
-| Trigger action endpoints | Yes | Yes |
-| Streaming/listen | Yes, `listen(...)` | No |
-| Trap/error handling | Yes, `RouterOSTrapError` | HTTP/request errors only |
-| Download files/data | Not as dedicated helper | Yes, `download(...)` |
-| Schema-aware access | Not needed | Yes, optional schema support |
-| Pre-auth local discovery | Yes, MNDP listener/discovery helpers | Detects MikroTik ads on network, usable before auth |
-| Provisioning/config helpers | Yes, typed helpers plus raw API access | Yes, low-level endpoint helpers |
+| Capability                  | RouterOS                               | SwitchOS                                             |
+| --------------------------- | -------------------------------------- | ---------------------------------------------------- |
+| Connect/authenticate        | Yes, binary API over TCP or API-SSL    | Yes, HTTP digest auth                                |
+| Raw command execution       | Yes, `execute(...)`                    | No CLI surface; use endpoint `read`/`write`/`action` |
+| SSH command execution       | Yes, via local `ssh` executable        | No                                                   |
+| Dynamic path API            | Yes, `client.api...`                   | No                                                   |
+| Typed helper layer          | Yes, documented/common menus only      | No stable typed helper layer                         |
+| Read menu data              | Yes                                    | Yes                                                  |
+| Write configuration         | Yes                                    | Yes                                                  |
+| Trigger action endpoints    | Yes                                    | Yes                                                  |
+| Streaming/listen            | Yes, `listen(...)`                     | No                                                   |
+| Trap/error handling         | Yes, `RouterOSTrapError`               | HTTP/request errors only                             |
+| Download files/data         | Not as dedicated helper                | Yes, `download(...)`                                 |
+| Schema-aware access         | Not needed                             | Yes, optional schema support                         |
+| Pre-auth local discovery    | Yes, MNDP listener/discovery helpers   | Detects MikroTik ads on network, usable before auth  |
+| Provisioning/config helpers | Yes, typed helpers plus raw API access | Yes, low-level endpoint helpers                      |
 
 ### RouterOS
 
-| Area | Support |
-| --- | --- |
-| System resource / identity | Typed helpers |
-| Package update / RouterBOARD / reboot / export | Typed helpers |
-| Interfaces / bonding | Typed helpers |
-| Legacy wireless registration table | Typed helpers |
-| WiFi registration table | Typed helpers |
-| LTE monitor | Typed helper |
-| Bridges / bridge ports / bridge VLANs | Typed helpers |
-| Bridge / bridge-port STP monitor | Typed helpers |
-| IP addresses / routes / neighbors | Typed helpers |
-| DHCP leases | Typed helper |
-| IP services | Typed helpers |
-| IPsec peers | Typed helper |
-| Firewall filters | Typed helpers |
-| IPv6 neighbors | Typed helper |
-| PPP secrets | Typed helpers |
-| WireGuard interfaces / peers | Typed helpers |
-| Routing rules / BGP templates / BGP connections | Typed helpers |
-| Anything else in RouterOS API | Raw `execute`, `print`, or `client.api` |
+| Area                                            | Support                                 |
+| ----------------------------------------------- | --------------------------------------- |
+| System resource / identity                      | Typed helpers                           |
+| Package update / RouterBOARD / reboot / export  | Typed helpers                           |
+| Interfaces / bonding                            | Typed helpers                           |
+| Legacy wireless registration table              | Typed helpers                           |
+| WiFi registration table                         | Typed helpers                           |
+| LTE monitor                                     | Typed helper                            |
+| Bridges / bridge ports / bridge VLANs           | Typed helpers                           |
+| Bridge / bridge-port STP monitor                | Typed helpers                           |
+| IP addresses / routes / neighbors               | Typed helpers                           |
+| DHCP leases                                     | Typed helper                            |
+| IP services                                     | Typed helpers                           |
+| IPsec peers                                     | Typed helper                            |
+| Firewall filters                                | Typed helpers                           |
+| IPv6 neighbors                                  | Typed helper                            |
+| PPP secrets                                     | Typed helpers                           |
+| WireGuard interfaces / peers                    | Typed helpers                           |
+| Routing rules / BGP templates / BGP connections | Typed helpers                           |
+| Anything else in RouterOS API                   | Raw `execute`, `print`, or `client.api` |
 
 ### SwitchOS
 
-| Area | Support |
-| --- | --- |
-| Generic endpoint reads | `read(path)` |
-| Generic endpoint writes | `write(path, body)` |
-| Action endpoints like `/reboot` | `action(path)` |
-| Binary/file downloads | `download(path)` |
-| Model/schema inspection | `schema`, `listEndpoints()`, `getEndpointSchema()` |
-| Encoding helpers for hex/IP/MAC/bitmask/literals | Provided |
-| Stable typed feature wrappers | Not provided intentionally |
-| Undocumented/model-specific operations | Use raw low-level client only |
+| Area                                             | Support                                            |
+| ------------------------------------------------ | -------------------------------------------------- |
+| Generic endpoint reads                           | `read(path)`                                       |
+| Generic endpoint writes                          | `write(path, body)`                                |
+| Action endpoints like `/reboot`                  | `action(path)`                                     |
+| Binary/file downloads                            | `download(path)`                                   |
+| Model/schema inspection                          | `schema`, `listEndpoints()`, `getEndpointSchema()` |
+| Encoding helpers for hex/IP/MAC/bitmask/literals | Provided                                           |
+| Stable typed feature wrappers                    | Not provided intentionally                         |
+| Undocumented/model-specific operations           | Use raw low-level client only                      |
 
 ## Installation
 
@@ -119,9 +119,7 @@ console.log({
   ip: decodeSwitchOSIpv4(sys.ip),
 });
 
-await client.write("/vlan.b", [
-  { vid: 1, nm: "64656661756c74", mbr: 0x0001ffff },
-]);
+await client.write("/vlan.b", [{ vid: 1, nm: "64656661756c74", mbr: 0x0001ffff }]);
 ```
 
 ## Quick Start

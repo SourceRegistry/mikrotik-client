@@ -1,10 +1,6 @@
 import { EventEmitter } from "node:events";
 import { createDeferred, withTimeout } from "../shared";
-import type {
-    RouterOSListenOptions,
-    RouterOSRecord,
-    RouterOSReply,
-} from "./index";
+import type { RouterOSListenOptions, RouterOSRecord, RouterOSReply } from "./index";
 import { RouterOSStream } from "./index";
 import type { DeviceTransport } from "./transport";
 
@@ -34,9 +30,9 @@ import type { DeviceTransport } from "./transport";
  * ```
  */
 export type TypedEvent<T> =
-    | { kind: "added"; after: T; before?: never; raw: RouterOSRecord }
-    | { kind: "updated"; after: T; before: T; raw: RouterOSRecord }
-    | { kind: "removed"; before: T; after?: never; raw: RouterOSRecord };
+  | { kind: "added"; after: T; before?: never; raw: RouterOSRecord }
+  | { kind: "updated"; after: T; before: T; raw: RouterOSRecord }
+  | { kind: "removed"; before: T; after?: never; raw: RouterOSRecord };
 
 /**
  * Options for creating a {@link TypedStream}.
@@ -50,18 +46,18 @@ export type TypedEvent<T> =
  * ```
  */
 export type TypedStreamOptions = {
-    /**
-     * AbortSignal to cancel the stream early.
-     * On abort, the underlying `RouterOSStream` is cancelled and
-     * this stream finishes within 100 ms.
-     */
-    signal?: AbortSignal;
-    /**
-     * Field names (in priority order) used to look up existing
-     * entries in the state map when identity resolution is needed.
-     * @default [".id", "name"]
-     */
-    onRemovalKeys?: readonly string[];
+  /**
+   * AbortSignal to cancel the stream early.
+   * On abort, the underlying `RouterOSStream` is cancelled and
+   * this stream finishes within 100 ms.
+   */
+  signal?: AbortSignal;
+  /**
+   * Field names (in priority order) used to look up existing
+   * entries in the state map when identity resolution is needed.
+   * @default [".id", "name"]
+   */
+  onRemovalKeys?: readonly string[];
 };
 
 /**
@@ -76,20 +72,20 @@ export type TypedStreamOptions = {
  * ```
  */
 export type RouterOSWatchOptions = {
-    /** AbortSignal to cancel the watch early. */
-    signal?: AbortSignal;
-    /** Default timeout for the underlying stream. */
-    timeoutMs?: number;
-    /**
-     * Poll interval for REST transport long-poll (ignored for binary API).
-     * @default 5000
-     */
-    intervalMs?: number;
-    /**
-     * Field names used for identity lookups in the state map.
-     * @default [".id", "name"]
-     */
-    onRemovalKeys?: readonly string[];
+  /** AbortSignal to cancel the watch early. */
+  signal?: AbortSignal;
+  /** Default timeout for the underlying stream. */
+  timeoutMs?: number;
+  /**
+   * Poll interval for REST transport long-poll (ignored for binary API).
+   * @default 5000
+   */
+  intervalMs?: number;
+  /**
+   * Field names used for identity lookups in the state map.
+   * @default [".id", "name"]
+   */
+  onRemovalKeys?: readonly string[];
 };
 
 // ─── Key helpers ──────────────────────────────────────────────────────────────
@@ -102,15 +98,15 @@ const DEFAULT_KEYS: readonly string[] = [".id", "name"];
  * Falls back to a composite of all non-empty fields.
  */
 function extractKey(raw: RouterOSRecord, keys: readonly string[]): string {
-    for (const key of keys) {
-        const value = raw[key];
-        if (value != null && value !== "") return value;
-    }
-    // Fallback: composite key from all fields
-    const parts = Object.entries(raw)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([k, v]) => `${k}=${v}`);
-    return parts.join("|");
+  for (const key of keys) {
+    const value = raw[key];
+    if (value != null && value !== "") return value;
+  }
+  // Fallback: composite key from all fields
+  const parts = Object.entries(raw)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`);
+  return parts.join("|");
 }
 
 /**
@@ -123,22 +119,22 @@ function extractKey(raw: RouterOSRecord, keys: readonly string[]): string {
  * - only one meaningful field (the key) is present.
  */
 function looksLikeRemoval(raw: RouterOSRecord, keys: readonly string[]): boolean {
-    // If RouterOS explicitly signals removal via .removed=yes, that takes priority
-    const removed = raw[".removed"];
-    if (removed !== undefined && removed === "yes") return true;
+  // If RouterOS explicitly signals removal via .removed=yes, that takes priority
+  const removed = raw[".removed"];
+  if (removed !== undefined && removed === "yes") return true;
 
-    // The record is likely a removal if it only contains key fields
-    // (e.g. { ".id": "*1" } with no other fields present)
-    for (const fieldName of Object.keys(raw)) {
-        // Skip .removed — it's a signal field, not resource data
-        if (fieldName === ".removed") continue;
-        // If a non-key field is present, this is likely an add/update, not a removal
-        if (!keys.includes(fieldName)) {
-            return false;
-        }
+  // The record is likely a removal if it only contains key fields
+  // (e.g. { ".id": "*1" } with no other fields present)
+  for (const fieldName of Object.keys(raw)) {
+    // Skip .removed — it's a signal field, not resource data
+    if (fieldName === ".removed") continue;
+    // If a non-key field is present, this is likely an add/update, not a removal
+    if (!keys.includes(fieldName)) {
+      return false;
     }
-    // Only key fields are present → treat as removal
-    return true;
+  }
+  // Only key fields are present → treat as removal
+  return true;
 }
 
 /**
@@ -146,7 +142,7 @@ function looksLikeRemoval(raw: RouterOSRecord, keys: readonly string[]): boolean
  * This is different from looksLikeRemoval which also includes the key-only heuristic.
  */
 function hasExplicitRemoval(raw: RouterOSRecord): boolean {
-    return raw[".removed"] === "yes";
+  return raw[".removed"] === "yes";
 }
 
 // ─── TypedStream class ────────────────────────────────────────────────────────
@@ -184,228 +180,228 @@ function hasExplicitRemoval(raw: RouterOSRecord): boolean {
  * });
  * ```
  */
-export class TypedStream<T>
-    extends EventEmitter
-    implements AsyncIterable<TypedEvent<T>> {
-    /** The current state of all tracked resources. */
-    public readonly state: Map<string, T> = new Map();
-    private readonly queue: TypedEvent<T>[] = [];
-    private readonly waiters: Array<ReturnType<typeof createDeferred<IteratorResult<TypedEvent<T>>>>> = [];
-    private finished = false;
-    private finishing = false;
-    private finishError?: unknown;
-    private readonly cancelFn: () => Promise<void>;
-    private readonly parseFn: (raw: RouterOSRecord) => T;
-    private readonly keys: readonly string[];
-    private abortCleanup: (() => void) | undefined;
+export class TypedStream<T> extends EventEmitter implements AsyncIterable<TypedEvent<T>> {
+  /** The current state of all tracked resources. */
+  public readonly state: Map<string, T> = new Map();
+  private readonly queue: TypedEvent<T>[] = [];
+  private readonly waiters: Array<
+    ReturnType<typeof createDeferred<IteratorResult<TypedEvent<T>>>>
+  > = [];
+  private finished = false;
+  private finishing = false;
+  private finishError?: unknown;
+  private readonly cancelFn: () => Promise<void>;
+  private readonly parseFn: (raw: RouterOSRecord) => T;
+  private readonly keys: readonly string[];
+  private abortCleanup: (() => void) | undefined;
 
-    /**
-     * Create a new typed event stream.
-     *
-     * @param stream - The underlying raw RouterOSStream (from `/listen`).
-     * @param parseFn - Parser function that converts a raw RouterOSRecord to T.
-     * @param options - Optional configuration (signal, key fields).
-     */
-    public constructor(
-        stream: RouterOSStream,
-        parseFn: (raw: RouterOSRecord) => T,
-        options?: TypedStreamOptions,
-    ) {
-        super();
+  /**
+   * Create a new typed event stream.
+   *
+   * @param stream - The underlying raw RouterOSStream (from `/listen`).
+   * @param parseFn - Parser function that converts a raw RouterOSRecord to T.
+   * @param options - Optional configuration (signal, key fields).
+   */
+  public constructor(
+    stream: RouterOSStream,
+    parseFn: (raw: RouterOSRecord) => T,
+    options?: TypedStreamOptions
+  ) {
+    super();
 
-        this.parseFn = parseFn;
-        this.keys = options?.onRemovalKeys ?? DEFAULT_KEYS;
-        this.cancelFn = async () => {
-            await stream.cancel();
-        };
+    this.parseFn = parseFn;
+    this.keys = options?.onRemovalKeys ?? DEFAULT_KEYS;
+    this.cancelFn = async () => {
+      await stream.cancel();
+    };
 
-        // Wire up the underlying stream
-        stream.on("reply", (reply: RouterOSReply) => {
-            void this.handleReply(reply);
+    // Wire up the underlying stream
+    stream.on("reply", (reply: RouterOSReply) => {
+      void this.handleReply(reply);
+    });
+
+    stream.on("close", (error?: unknown) => {
+      this.finish(error);
+      this.cleanupAbort();
+    });
+
+    // Handle AbortSignal
+    if (options?.signal) {
+      this.bindAbort(options.signal);
+    }
+  }
+
+  /**
+   * Bind an AbortSignal to cancel this stream on abort.
+   * Cleanup is guaranteed within 100 ms of signal abort.
+   */
+  private bindAbort(signal: AbortSignal): void {
+    const abortHandler = async () => {
+      try {
+        await this.cancel();
+      } catch {
+        // cancel may already be in progress
+      }
+    };
+
+    signal.addEventListener("abort", abortHandler, { once: true });
+    this.abortCleanup = () => {
+      signal.removeEventListener("abort", abortHandler);
+    };
+
+    if (signal.aborted) {
+      void abortHandler();
+    }
+  }
+
+  private cleanupAbort(): void {
+    this.abortCleanup?.();
+    this.abortCleanup = undefined;
+  }
+
+  /**
+   * Handle incoming replies from the underlying stream.
+   * Classifies each `!re` as added, updated, or removed based on state map.
+   */
+  private async handleReply(reply: RouterOSReply): Promise<void> {
+    if (reply.type === "done") {
+      // Stream ended normally — let the close handler deal with it
+      return;
+    }
+
+    if (reply.type === "trap" || reply.type === "fatal") {
+      // Let the underlying stream handle error propagation
+      return;
+    }
+
+    // Only process `!re` (reply data) sentences
+    if (reply.type !== "re") return;
+
+    const raw = reply.attributes;
+    const key = extractKey(raw, this.keys);
+    const parsed = this.parseFn(raw);
+
+    if (this.state.has(key)) {
+      // Key is already tracked — check if this is a removal or update
+      if (looksLikeRemoval(raw, this.keys)) {
+        // Removal: keep the before state from our map
+        const before = this.state.get(key);
+        if (before) {
+          this.state.delete(key);
+          this.emitEvent({
+            kind: "removed",
+            before,
+            raw,
+          } as TypedEvent<T>);
+        }
+      } else {
+        // Update: key exists and has non-key data
+        const before = this.state.get(key)!;
+        this.state.set(key, parsed);
+        this.emitEvent({
+          kind: "updated",
+          before,
+          after: parsed,
+          raw,
         });
+      }
+    } else {
+      // Key is new — check if it's an explicit removal signal
+      if (hasExplicitRemoval(raw)) {
+        // Explicit .removed=yes for untracked key — ignore
+        return;
+      }
+      // Otherwise treat as add (first-time, post-reboot reappear, or key-only heuristic)
+      this.state.set(key, parsed);
+      this.emitEvent({
+        kind: "added",
+        after: parsed,
+        raw,
+      } as TypedEvent<T>);
+    }
+  }
 
-        stream.on("close", (error?: unknown) => {
-            this.finish(error);
-            this.cleanupAbort();
-        });
+  /** Dispatch an event to listeners + waiters. */
+  private emitEvent(event: TypedEvent<T>): void {
+    this.emit("event", event);
 
-        // Handle AbortSignal
-        if (options?.signal) {
-            this.bindAbort(options.signal);
-        }
+    if (this.waiters.length > 0) {
+      this.waiters.shift()!.resolve({ value: event, done: false });
+      return;
     }
 
-    /**
-     * Bind an AbortSignal to cancel this stream on abort.
-     * Cleanup is guaranteed within 100 ms of signal abort.
-     */
-    private bindAbort(signal: AbortSignal): void {
-        const abortHandler = async () => {
-            try {
-                await this.cancel();
-            } catch {
-                // cancel may already be in progress
-            }
-        };
+    this.queue.push(event);
+  }
 
-        signal.addEventListener("abort", abortHandler, { once: true });
-        this.abortCleanup = () => {
-            signal.removeEventListener("abort", abortHandler);
-        };
-
-        if (signal.aborted) {
-            void abortHandler();
-        }
+  /**
+   * Get the next typed event, waiting if necessary.
+   * Returns `undefined` when the stream is finished.
+   *
+   * @param timeoutMs - Optional timeout in milliseconds.
+   */
+  async nextEvent(timeoutMs?: number): Promise<TypedEvent<T> | undefined> {
+    if (this.queue.length > 0) {
+      return this.queue.shift();
     }
 
-    private cleanupAbort(): void {
-        this.abortCleanup?.();
-        this.abortCleanup = undefined;
+    if (this.finished) {
+      if (this.finishError) {
+        throw this.finishError;
+      }
+      return undefined;
     }
 
-    /**
-     * Handle incoming replies from the underlying stream.
-     * Classifies each `!re` as added, updated, or removed based on state map.
-     */
-    private async handleReply(reply: RouterOSReply): Promise<void> {
-        if (reply.type === "done") {
-            // Stream ended normally — let the close handler deal with it
-            return;
-        }
+    const deferred = createDeferred<IteratorResult<TypedEvent<T>>>();
+    this.waiters.push(deferred);
+    const result = await withTimeout(
+      deferred.promise,
+      timeoutMs,
+      `Timed out waiting for typed stream event`
+    );
+    return result.done ? undefined : result.value;
+  }
 
-        if (reply.type === "trap" || reply.type === "fatal") {
-            // Let the underlying stream handle error propagation
-            return;
-        }
+  /**
+   * Cancel the underlying stream and finish this typed stream.
+   * Idempotent: safe to call multiple times.
+   */
+  async cancel(): Promise<void> {
+    if (this.finished || this.finishing) return;
+    this.finishing = true;
+    this.cleanupAbort();
+    await this.cancelFn();
+  }
 
-        // Only process `!re` (reply data) sentences
-        if (reply.type !== "re") return;
+  /**
+   * Finish the stream, resolving all pending waiters.
+   */
+  finish(error?: unknown): void {
+    if (this.finished) return;
+    this.finished = true;
+    this.finishing = false;
+    this.finishError = error;
+    this.cleanupAbort();
 
-        const raw = reply.attributes;
-        const key = extractKey(raw, this.keys);
-        const parsed = this.parseFn(raw);
-
-        if (this.state.has(key)) {
-            // Key is already tracked — check if this is a removal or update
-            if (looksLikeRemoval(raw, this.keys)) {
-                // Removal: keep the before state from our map
-                const before = this.state.get(key);
-                if (before) {
-                    this.state.delete(key);
-                    this.emitEvent({
-                        kind: "removed",
-                        before,
-                        raw,
-                    } as TypedEvent<T>);
-                }
-            } else {
-                // Update: key exists and has non-key data
-                const before = this.state.get(key)!;
-                this.state.set(key, parsed);
-                this.emitEvent({
-                    kind: "updated",
-                    before,
-                    after: parsed,
-                    raw,
-                });
-            }
-        } else {
-            // Key is new — check if it's an explicit removal signal
-            if (hasExplicitRemoval(raw)) {
-                // Explicit .removed=yes for untracked key — ignore
-                return;
-            }
-            // Otherwise treat as add (first-time, post-reboot reappear, or key-only heuristic)
-            this.state.set(key, parsed);
-            this.emitEvent({
-                kind: "added",
-                after: parsed,
-                raw,
-            } as TypedEvent<T>);
-        }
+    while (this.waiters.length > 0) {
+      const waiter = this.waiters.shift()!;
+      if (error) {
+        waiter.reject(error);
+      } else {
+        waiter.resolve({ value: undefined, done: true });
+      }
     }
 
-    /** Dispatch an event to listeners + waiters. */
-    private emitEvent(event: TypedEvent<T>): void {
-        this.emit("event", event);
+    this.emit("close", error);
+  }
 
-        if (this.waiters.length > 0) {
-            this.waiters.shift()!.resolve({ value: event, done: false });
-            return;
-        }
-
-        this.queue.push(event);
+  /** Async iterator: backpressure-aware. */
+  async *[Symbol.asyncIterator](): AsyncIterator<TypedEvent<T>> {
+    while (true) {
+      const event = await this.nextEvent();
+      if (event === undefined) return;
+      yield event;
     }
-
-    /**
-     * Get the next typed event, waiting if necessary.
-     * Returns `undefined` when the stream is finished.
-     *
-     * @param timeoutMs - Optional timeout in milliseconds.
-     */
-    async nextEvent(timeoutMs?: number): Promise<TypedEvent<T> | undefined> {
-        if (this.queue.length > 0) {
-            return this.queue.shift();
-        }
-
-        if (this.finished) {
-            if (this.finishError) {
-                throw this.finishError;
-            }
-            return undefined;
-        }
-
-        const deferred = createDeferred<IteratorResult<TypedEvent<T>>>();
-        this.waiters.push(deferred);
-        const result = await withTimeout(
-            deferred.promise,
-            timeoutMs,
-            `Timed out waiting for typed stream event`,
-        );
-        return result.done ? undefined : result.value;
-    }
-
-    /**
-     * Cancel the underlying stream and finish this typed stream.
-     * Idempotent: safe to call multiple times.
-     */
-    async cancel(): Promise<void> {
-        if (this.finished || this.finishing) return;
-        this.finishing = true;
-        this.cleanupAbort();
-        await this.cancelFn();
-    }
-
-    /**
-     * Finish the stream, resolving all pending waiters.
-     */
-    finish(error?: unknown): void {
-        if (this.finished) return;
-        this.finished = true;
-        this.finishing = false;
-        this.finishError = error;
-        this.cleanupAbort();
-
-        while (this.waiters.length > 0) {
-            const waiter = this.waiters.shift()!;
-            if (error) {
-                waiter.reject(error);
-            } else {
-                waiter.resolve({ value: undefined, done: true });
-            }
-        }
-
-        this.emit("close", error);
-    }
-
-    /** Async iterator: backpressure-aware. */
-    async *[Symbol.asyncIterator](): AsyncIterator<TypedEvent<T>> {
-        while (true) {
-            const event = await this.nextEvent();
-            if (event === undefined) return;
-            yield event;
-        }
-    }
+  }
 }
 
 // ─── watch() helper factory ──────────────────────────────────────────────────
@@ -432,10 +428,10 @@ export class TypedStream<T>
  * ```
  */
 export type WatchFactory<T = RouterOSRecord> = {
-    /** Start watching the resource. Returns a typed stream. */
-    watch: (options?: RouterOSWatchOptions) => Promise<TypedStream<T>>;
-    /** Cancel all active watch streams. */
-    cancel: () => Promise<void>;
+  /** Start watching the resource. Returns a typed stream. */
+  watch: (options?: RouterOSWatchOptions) => Promise<TypedStream<T>>;
+  /** Cancel all active watch streams. */
+  cancel: () => Promise<void>;
 };
 
 /**
@@ -447,47 +443,47 @@ export type WatchFactory<T = RouterOSRecord> = {
  * @param parseFn - Parser from raw record to typed DTO.
  */
 export function createWatch<T>({
-    transport,
-    printPath,
-    listenPath,
-    parseFn,
+  transport,
+  printPath,
+  listenPath,
+  parseFn,
 }: {
-    transport: DeviceTransport;
-    printPath: string;
-    listenPath: string;
-    parseFn: (raw: RouterOSRecord) => T;
+  transport: DeviceTransport;
+  printPath: string;
+  listenPath: string;
+  parseFn: (raw: RouterOSRecord) => T;
 }): WatchFactory<T> {
-    let streamRef: TypedStream<T> | undefined;
+  let streamRef: TypedStream<T> | undefined;
 
-    // Check if this is a REST transport (no streaming support)
-    const isRestTransport = hasExecuteLimitation(transport);
+  // Check if this is a REST transport (no streaming support)
+  const isRestTransport = hasExecuteLimitation(transport);
 
-    return {
-        async watch(options: RouterOSWatchOptions = {}): Promise<TypedStream<T>> {
-            if (isRestTransport) {
-                return createPollingStream({
-                    transport,
-                    printPath,
-                    parseFn,
-                    options,
-                });
-            }
+  return {
+    async watch(options: RouterOSWatchOptions = {}): Promise<TypedStream<T>> {
+      if (isRestTransport) {
+        return createPollingStream({
+          transport,
+          printPath,
+          parseFn,
+          options,
+        });
+      }
 
-            return createListenStream({
-                transport,
-                listenPath,
-                parseFn,
-                options,
-            });
-        },
+      return createListenStream({
+        transport,
+        listenPath,
+        parseFn,
+        options,
+      });
+    },
 
-        async cancel(): Promise<void> {
-            if (streamRef) {
-                await streamRef.cancel();
-                streamRef = undefined;
-            }
-        },
-    };
+    async cancel(): Promise<void> {
+      if (streamRef) {
+        await streamRef.cancel();
+        streamRef = undefined;
+      }
+    },
+  };
 }
 
 /**
@@ -495,132 +491,136 @@ export function createWatch<T>({
  * RouterOSRestClient listen() always throws, so we probe by checking the constructor name.
  */
 function hasExecuteLimitation(transport: DeviceTransport): boolean {
-    // Check if this is a REST transport by looking at the constructor name
-    const ctorName = transport.constructor?.name ?? "";
-    return ctorName.includes("Rest");
+  // Check if this is a REST transport by looking at the constructor name
+  const ctorName = transport.constructor?.name ?? "";
+  return ctorName.includes("Rest");
 }
 
 // ─── Listen-based streaming (binary API) ─────────────────────────────────────
 
 async function createListenStream<T>({
-    transport,
-    listenPath,
-    parseFn,
-    options,
+  transport,
+  listenPath,
+  parseFn,
+  options,
 }: {
-    transport: DeviceTransport;
-    listenPath: string;
-    parseFn: (raw: RouterOSRecord) => T;
-    options: RouterOSWatchOptions;
+  transport: DeviceTransport;
+  listenPath: string;
+  parseFn: (raw: RouterOSRecord) => T;
+  options: RouterOSWatchOptions;
 }): Promise<TypedStream<T>> {
-    const listenOpts: RouterOSListenOptions = {
-        ...(options.timeoutMs !== undefined && { timeoutMs: options.timeoutMs }),
-        ...(options.signal !== undefined && { signal: options.signal }),
-    };
+  const listenOpts: RouterOSListenOptions = {
+    ...(options.timeoutMs !== undefined && { timeoutMs: options.timeoutMs }),
+    ...(options.signal !== undefined && { signal: options.signal }),
+  };
 
-    const stream = await transport.listen(listenPath, listenOpts);
-    const typed = new TypedStream<T>(stream, parseFn, {
-        ...(options.signal !== undefined && { signal: options.signal }),
-        ...(options.onRemovalKeys !== undefined && { onRemovalKeys: options.onRemovalKeys }),
-    });
+  const stream = await transport.listen(listenPath, listenOpts);
+  const typed = new TypedStream<T>(stream, parseFn, {
+    ...(options.signal !== undefined && { signal: options.signal }),
+    ...(options.onRemovalKeys !== undefined && { onRemovalKeys: options.onRemovalKeys }),
+  });
 
-    return typed;
+  return typed;
 }
 
 // ─── Polling-based streaming (REST fallback) ─────────────────────────────────
 
 async function createPollingStream<T>({
-    transport,
-    printPath,
-    parseFn,
-    options,
+  transport,
+  printPath,
+  parseFn,
+  options,
 }: {
-    transport: DeviceTransport;
-    printPath: string;
-    parseFn: (raw: RouterOSRecord) => T;
-    options: RouterOSWatchOptions;
+  transport: DeviceTransport;
+  printPath: string;
+  parseFn: (raw: RouterOSRecord) => T;
+  options: RouterOSWatchOptions;
 }): Promise<TypedStream<T>> {
-    const intervalMs = options.intervalMs ?? 5000;
-    const keys = options.onRemovalKeys ?? DEFAULT_KEYS;
+  const intervalMs = options.intervalMs ?? 5000;
+  const keys = options.onRemovalKeys ?? DEFAULT_KEYS;
 
-    // Create a synthetic stream-like object that we can wrap
-    const stopRef = { running: true };
+  // Create a synthetic stream-like object that we can wrap
+  const stopRef = { running: true };
 
-    const syntheticStream = new RouterOSStream(`poll-${printPath}`, async () => {});
+  const syntheticStream = new RouterOSStream(`poll-${printPath}`, async () => {});
 
-    const typed = new TypedStream<T>(syntheticStream, parseFn, {
+  const typed = new TypedStream<T>(syntheticStream, parseFn, {
+    ...(options.signal !== undefined && { signal: options.signal }),
+    onRemovalKeys: keys,
+  });
+
+  // Seed initial state
+  async function poll(): Promise<void> {
+    if (!stopRef.running || options.signal?.aborted) return;
+
+    try {
+      const records = await transport.print(printPath, {
         ...(options.signal !== undefined && { signal: options.signal }),
-        onRemovalKeys: keys,
-    });
+        ...(options.timeoutMs !== undefined && { timeoutMs: options.timeoutMs }),
+      });
 
-    // Seed initial state
-    async function poll(): Promise<void> {
-        if (!stopRef.running || options.signal?.aborted) return;
+      const currentIds = new Map<string, RouterOSRecord>();
+      for (const raw of records) {
+        const key = extractKey(raw, keys);
+        currentIds.set(key, raw);
+      }
 
-        try {
-            const records = await transport.print(printPath, {
-                ...(options.signal !== undefined && { signal: options.signal }),
-                ...(options.timeoutMs !== undefined && { timeoutMs: options.timeoutMs }),
-            });
-
-            const currentIds = new Map<string, RouterOSRecord>();
-            for (const raw of records) {
-                const key = extractKey(raw, keys);
-                currentIds.set(key, raw);
-            }
-
-            // Find removed entries (in state but not in current)
-            for (const [key] of typed.state) {
-                if (!currentIds.has(key)) {
-                    // Emit synthetic removal reply
-                    const removalRaw: RouterOSRecord = { [keys[0] ?? ".id"]: key };
-                    syntheticStream.emit("reply", {
-                        type: "re" as const,
-                        attributes: removalRaw,
-                        apiAttributes: {},
-                        raw: [],
-                    });
-                }
-            }
-
-            // Emit current state as replies (TypedStream will classify as added/updated)
-            for (const raw of records) {
-                syntheticStream.emit("reply", {
-                    type: "re" as const,
-                    attributes: raw,
-                    apiAttributes: {},
-                    raw: [],
-                });
-            }
-        } catch (err) {
-            // On abort error, silently stop
-            if (err instanceof DOMException && err.name === "AbortError") return;
-            // Finish the stream with the error (routes via TypedStream's close handler)
-            syntheticStream.finish(err);
+      // Find removed entries (in state but not in current)
+      for (const [key] of typed.state) {
+        if (!currentIds.has(key)) {
+          // Emit synthetic removal reply
+          const removalRaw: RouterOSRecord = { [keys[0] ?? ".id"]: key };
+          syntheticStream.emit("reply", {
+            type: "re" as const,
+            attributes: removalRaw,
+            apiAttributes: {},
+            raw: [],
+          });
         }
+      }
 
-        if (stopRef.running && !options.signal?.aborted) {
-            setTimeout(() => void poll(), intervalMs);
-        }
+      // Emit current state as replies (TypedStream will classify as added/updated)
+      for (const raw of records) {
+        syntheticStream.emit("reply", {
+          type: "re" as const,
+          attributes: raw,
+          apiAttributes: {},
+          raw: [],
+        });
+      }
+    } catch (err) {
+      // On abort error, silently stop
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      // Finish the stream with the error (routes via TypedStream's close handler)
+      syntheticStream.finish(err);
     }
 
-    // Start polling
-    void poll();
-
-    // Wire up abort signal
-    if (options.signal) {
-        options.signal.addEventListener("abort", () => {
-            stopRef.running = false;
-        }, { once: true });
+    if (stopRef.running && !options.signal?.aborted) {
+      setTimeout(() => void poll(), intervalMs);
     }
+  }
 
-    // Override cancel to also stop polling
-    const originalCancel = typed.cancel.bind(typed);
-    typed.cancel = async () => {
+  // Start polling
+  void poll();
+
+  // Wire up abort signal
+  if (options.signal) {
+    options.signal.addEventListener(
+      "abort",
+      () => {
         stopRef.running = false;
-        await originalCancel();
-        syntheticStream.emit("close");
-    };
+      },
+      { once: true }
+    );
+  }
 
-    return typed;
+  // Override cancel to also stop polling
+  const originalCancel = typed.cancel.bind(typed);
+  typed.cancel = async () => {
+    stopRef.running = false;
+    await originalCancel();
+    syntheticStream.emit("close");
+  };
+
+  return typed;
 }

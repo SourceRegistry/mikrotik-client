@@ -6,7 +6,9 @@ function makeTransport(): DeviceTransport {
   return {
     execute: vi.fn(async () => ({ records: [], traps: [], tag: "1" })),
     print: vi.fn(async () => []),
-    listen: vi.fn(async () => { throw new Error("not implemented"); }),
+    listen: vi.fn(async () => {
+      throw new Error("not implemented");
+    }),
   } as DeviceTransport;
 }
 
@@ -82,9 +84,7 @@ describe("withRateLimit", () => {
     const controller = new AbortController();
     controller.abort(new Error("aborted"));
 
-    await expect(
-      transport.execute("/y", { signal: controller.signal })
-    ).rejects.toThrow("aborted");
+    await expect(transport.execute("/y", { signal: controller.signal })).rejects.toThrow("aborted");
   });
 
   it("print goes through rate limiter", async () => {

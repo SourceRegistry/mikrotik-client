@@ -402,13 +402,13 @@ export type RouterOSHelpers = {
           name: string;
           slaves: string | readonly string[];
           mode?:
-          | "802.3ad"
-          | "balance-xor"
-          | "active-backup"
-          | "balance-rr"
-          | "broadcast"
-          | "balance-tlb"
-          | "balance-alb";
+            | "802.3ad"
+            | "balance-xor"
+            | "active-backup"
+            | "balance-rr"
+            | "broadcast"
+            | "balance-tlb"
+            | "balance-alb";
           "lacp-rate"?: "30secs" | "1sec";
           "mlag-id"?: string | number;
           "transmit-hash-policy"?: string;
@@ -1339,13 +1339,14 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
           async checkForUpdates(
             options: Omit<RouterOSCommandOptions, "attributes"> = {}
           ): Promise<RouterOSPackageUpdateStatus | undefined> {
-            const result = await client.execute("/system/package/update/check-for-updates", options);
+            const result = await client.execute(
+              "/system/package/update/check-for-updates",
+              options
+            );
             const raw = toMonitorRaw(result);
             return raw !== undefined ? parsePackageUpdateStatus(raw) : undefined;
           },
-          async install(
-            options: Omit<RouterOSCommandOptions, "attributes"> = {}
-          ): Promise<void> {
+          async install(options: Omit<RouterOSCommandOptions, "attributes"> = {}): Promise<void> {
             await client.execute("/system/package/update/install", options);
           },
         },
@@ -1356,15 +1357,11 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
           const raw = records[0];
           return raw !== undefined ? parseRouterboard(raw) : undefined;
         },
-        async upgrade(
-          options: Omit<RouterOSCommandOptions, "attributes"> = {}
-        ): Promise<void> {
+        async upgrade(options: Omit<RouterOSCommandOptions, "attributes"> = {}): Promise<void> {
           await client.execute("/system/routerboard/upgrade", options);
         },
       },
-      async reboot(
-        options: Omit<RouterOSCommandOptions, "attributes"> = {}
-      ): Promise<void> {
+      async reboot(options: Omit<RouterOSCommandOptions, "attributes"> = {}): Promise<void> {
         await client.execute("/system/reboot", options);
       },
       async exportConfig(
@@ -1386,9 +1383,9 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
     },
     interface: {
       list(options: RouterOSPrintOptions = {}): Promise<RouterOSInterface[]> {
-        return client.print("/interface", toPrintOptions(options)).then(records =>
-          records.map(parseInterface)
-        );
+        return client
+          .print("/interface", toPrintOptions(options))
+          .then((records) => records.map(parseInterface));
       },
       listen(options: RouterOSListenOptions = {}): Promise<RouterOSStream> {
         return client.listen("/interface/listen", options);
@@ -1414,20 +1411,18 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
       wireless: {
         registrationTable: {
           list(options: RouterOSPrintOptions = {}): Promise<RouterOSWirelessRegistration[]> {
-            return client.print(
-              "/interface/wireless/registration-table",
-              toPrintOptions(options)
-            ).then(records => records.map(parseWirelessRegistration));
+            return client
+              .print("/interface/wireless/registration-table", toPrintOptions(options))
+              .then((records) => records.map(parseWirelessRegistration));
           },
         },
       },
       wifi: {
         registrationTable: {
           list(options: RouterOSPrintOptions = {}): Promise<RouterOSWirelessRegistration[]> {
-            return client.print(
-              "/interface/wifi/registration-table",
-              toPrintOptions(options)
-            ).then(records => records.map(parseWirelessRegistration));
+            return client
+              .print("/interface/wifi/registration-table", toPrintOptions(options))
+              .then((records) => records.map(parseWirelessRegistration));
           },
         },
       },
@@ -1451,15 +1446,22 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
       },
       bonding: {
         list(options: RouterOSPrintOptions = {}): Promise<RouterOSBonding[]> {
-          return client.print("/interface/bonding", toPrintOptions(options)).then(records =>
-            records.map(parseBonding)
-          );
+          return client
+            .print("/interface/bonding", toPrintOptions(options))
+            .then((records) => records.map(parseBonding));
         },
         async add(
           attributes: {
             name: string;
             slaves: string | readonly string[];
-            mode?: "802.3ad" | "balance-xor" | "active-backup" | "balance-rr" | "broadcast" | "balance-tlb" | "balance-alb";
+            mode?:
+              | "802.3ad"
+              | "balance-xor"
+              | "active-backup"
+              | "balance-rr"
+              | "broadcast"
+              | "balance-tlb"
+              | "balance-alb";
             "lacp-rate"?: "30secs" | "1sec";
             "mlag-id"?: string | number;
             "transmit-hash-policy"?: string;
@@ -1501,9 +1503,9 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
     },
     bridge: {
       list(options: RouterOSPrintOptions = {}): Promise<RouterOSBridge[]> {
-        return client.print("/interface/bridge", toPrintOptions(options)).then(records =>
-          records.map(parseBridge)
-        );
+        return client
+          .print("/interface/bridge", toPrintOptions(options))
+          .then((records) => records.map(parseBridge));
       },
       async monitor(
         bridgeId: string,
@@ -1557,9 +1559,9 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
       },
       port: {
         list(options: RouterOSPrintOptions = {}): Promise<RouterOSBridgePort[]> {
-          return client.print("/interface/bridge/port", toPrintOptions(options)).then(records =>
-            records.map(parseBridgePort)
-          );
+          return client
+            .print("/interface/bridge/port", toPrintOptions(options))
+            .then((records) => records.map(parseBridgePort));
         },
         async monitor(
           portId: string,
@@ -1614,9 +1616,9 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
       },
       vlan: {
         list(options: RouterOSPrintOptions = {}): Promise<RouterOSBridgeVlan[]> {
-          return client.print("/interface/bridge/vlan", toPrintOptions(options)).then(records =>
-            records.map(parseBridgeVlan)
-          );
+          return client
+            .print("/interface/bridge/vlan", toPrintOptions(options))
+            .then((records) => records.map(parseBridgeVlan));
         },
         async add(
           attributes: {
@@ -1648,42 +1650,41 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
     ip: {
       neighbor: {
         list(options: RouterOSPrintOptions = {}): Promise<RouterOSNeighbor[]> {
-          return client.print("/ip/neighbor", toPrintOptions(options)).then(records =>
-            records.map(parseNeighbor)
-          );
+          return client
+            .print("/ip/neighbor", toPrintOptions(options))
+            .then((records) => records.map(parseNeighbor));
         },
       },
       ipsec: {
         peer: {
           list(options: RouterOSPrintOptions = {}): Promise<RouterOSIpsecPeer[]> {
-            return client.print("/ip/ipsec/peer", toPrintOptions(options)).then(records =>
-              records.map(parseIpsecPeer)
-            );
+            return client
+              .print("/ip/ipsec/peer", toPrintOptions(options))
+              .then((records) => records.map(parseIpsecPeer));
           },
         },
       },
       route: {
         list(options: RouterOSPrintOptions = {}): Promise<RouterOSIpRoute[]> {
-          return client.print("/ip/route", toPrintOptions(options)).then(records =>
-            records.map(parseIpRoute)
-          );
+          return client
+            .print("/ip/route", toPrintOptions(options))
+            .then((records) => records.map(parseIpRoute));
         },
       },
       dhcpServer: {
         lease: {
           list(options: RouterOSPrintOptions = {}): Promise<RouterOSDhcpLease[]> {
-            return client.print(
-              "/ip/dhcp-server/lease",
-              toPrintOptions(options)
-            ).then(records => records.map(parseDhcpLease));
+            return client
+              .print("/ip/dhcp-server/lease", toPrintOptions(options))
+              .then((records) => records.map(parseDhcpLease));
           },
         },
       },
       service: {
         list(options: RouterOSPrintOptions = {}): Promise<RouterOSIpService[]> {
-          return client.print("/ip/service", toPrintOptions(options)).then(records =>
-            records.map(parseIpService)
-          );
+          return client
+            .print("/ip/service", toPrintOptions(options))
+            .then((records) => records.map(parseIpService));
         },
         async set(
           id: string,
@@ -1698,9 +1699,9 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
       },
       address: {
         list(options: RouterOSPrintOptions = {}): Promise<RouterOSIpAddress[]> {
-          return client.print("/ip/address", toPrintOptions(options)).then(records =>
-            records.map(parseIpAddress)
-          );
+          return client
+            .print("/ip/address", toPrintOptions(options))
+            .then((records) => records.map(parseIpAddress));
         },
         async add(
           attributes: {
@@ -1746,10 +1747,9 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
       firewall: {
         filter: {
           list(options: RouterOSPrintOptions = {}): Promise<RouterOSFirewallFilterRule[]> {
-            return client.print(
-              "/ip/firewall/filter",
-              toPrintOptions(options)
-            ).then(records => records.map(parseFirewallFilterRule));
+            return client
+              .print("/ip/firewall/filter", toPrintOptions(options))
+              .then((records) => records.map(parseFirewallFilterRule));
           },
           async add(
             attributes: Record<string, RouterOSPrimitive>,
@@ -1775,9 +1775,9 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
     wireguard: {
       interface: {
         list(options: RouterOSPrintOptions = {}): Promise<RouterOSWireGuardInterface[]> {
-          return client.print("/interface/wireguard", toPrintOptions(options)).then(records =>
-            records.map(parseWireGuardInterface)
-          );
+          return client
+            .print("/interface/wireguard", toPrintOptions(options))
+            .then((records) => records.map(parseWireGuardInterface));
         },
         async add(
           attributes: {
@@ -1817,9 +1817,9 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
       },
       peer: {
         list(options: RouterOSPrintOptions = {}): Promise<RouterOSWireGuardPeer[]> {
-          return client.print("/interface/wireguard/peers", toPrintOptions(options)).then(records =>
-            records.map(parseWireGuardPeer)
-          );
+          return client
+            .print("/interface/wireguard/peers", toPrintOptions(options))
+            .then((records) => records.map(parseWireGuardPeer));
         },
         async add(
           attributes: {
@@ -1863,9 +1863,9 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
     ppp: {
       secret: {
         list(options: RouterOSPrintOptions = {}): Promise<RouterOSPppSecret[]> {
-          return client.print("/ppp/secret", toPrintOptions(options)).then(records =>
-            records.map(parsePppSecret)
-          );
+          return client
+            .print("/ppp/secret", toPrintOptions(options))
+            .then((records) => records.map(parsePppSecret));
         },
         async add(
           attributes: {
@@ -1918,9 +1918,9 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
       bgp: {
         connection: {
           list(options: RouterOSPrintOptions = {}): Promise<RouterOSBgpConnection[]> {
-            return client.print("/routing/bgp/connection", toPrintOptions(options)).then(records =>
-              records.map(parseBgpConnection)
-            );
+            return client
+              .print("/routing/bgp/connection", toPrintOptions(options))
+              .then((records) => records.map(parseBgpConnection));
           },
           async add(
             attributes: Record<string, RouterOSPrimitive>,
@@ -1953,9 +1953,9 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
         },
         template: {
           list(options: RouterOSPrintOptions = {}): Promise<RouterOSBgpTemplate[]> {
-            return client.print("/routing/bgp/template", toPrintOptions(options)).then(records =>
-              records.map(parseBgpTemplate)
-            );
+            return client
+              .print("/routing/bgp/template", toPrintOptions(options))
+              .then((records) => records.map(parseBgpTemplate));
           },
           async add(
             attributes: Record<string, RouterOSPrimitive>,
@@ -1989,9 +1989,9 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
       },
       rule: {
         list(options: RouterOSPrintOptions = {}): Promise<RouterOSRoutingRule[]> {
-          return client.print("/routing/rule", toPrintOptions(options)).then(records =>
-            records.map(parseRoutingRule)
-          );
+          return client
+            .print("/routing/rule", toPrintOptions(options))
+            .then((records) => records.map(parseRoutingRule));
         },
         async add(
           attributes: Record<string, RouterOSPrimitive>,
@@ -2017,9 +2017,9 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
     ipv6: {
       neighbor: {
         list(options: RouterOSPrintOptions = {}): Promise<RouterOSIpv6Neighbor[]> {
-          return client.print("/ipv6/neighbor", toPrintOptions(options)).then(records =>
-            records.map(parseIpv6Neighbor)
-          );
+          return client
+            .print("/ipv6/neighbor", toPrintOptions(options))
+            .then((records) => records.map(parseIpv6Neighbor));
         },
       },
     },

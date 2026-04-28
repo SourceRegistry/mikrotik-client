@@ -6,7 +6,9 @@ function makeTransport(): DeviceTransport {
   return {
     execute: vi.fn(async () => ({ records: [], traps: [], tag: "1" })),
     print: vi.fn(async () => []),
-    listen: vi.fn(async () => { throw new Error("not implemented"); }),
+    listen: vi.fn(async () => {
+      throw new Error("not implemented");
+    }),
   } as DeviceTransport;
 }
 
@@ -109,7 +111,7 @@ describe("ConnectionPool", () => {
 
   it("calls disposeTransport on close", async () => {
     const inner = makeTransport();
-    const dispose = vi.fn(async () => { });
+    const dispose = vi.fn(async () => {});
     const pool = new ConnectionPool(async () => inner, fastConfig, dispose);
 
     await pool.execute("/x"); // create + return to idle
@@ -189,7 +191,7 @@ describe("ConnectionPool", () => {
     const factory = vi.fn(async () => {
       return callCount++ === 0 ? transport1 : transport2;
     });
-    const dispose = vi.fn(async () => { });
+    const dispose = vi.fn(async () => {});
     const pool = new ConnectionPool(factory, fastConfig, dispose);
 
     // Create two connections and return both to idle
@@ -211,7 +213,7 @@ describe("ConnectionPool", () => {
 
   it("release on closed pool disposes connection", async () => {
     const t = makeTransport();
-    const dispose = vi.fn(async () => { });
+    const dispose = vi.fn(async () => {});
     const pool = new ConnectionPool(async () => t, fastConfig, dispose);
 
     await pool.acquire();
@@ -430,15 +432,19 @@ describe("ConnectionPool - idle pruning (fake timers)", () => {
   });
 
   it("pruneIdle removes stale connection above min", async () => {
-    const dispose = vi.fn(async () => { });
+    const dispose = vi.fn(async () => {});
     vi.setSystemTime(new Date(2024, 0, 1, 0, 0, 0));
 
-    const pool = new ConnectionPool(async () => makeTransport(), {
-      ...fastConfig,
-      min: 1,
-      max: 3,
-      idleTimeoutMs: 5000,
-    }, dispose);
+    const pool = new ConnectionPool(
+      async () => makeTransport(),
+      {
+        ...fastConfig,
+        min: 1,
+        max: 3,
+        idleTimeoutMs: 5000,
+      },
+      dispose
+    );
 
     // Create 3 connections and return to idle
     const t1 = await pool.acquire();

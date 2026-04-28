@@ -189,11 +189,7 @@ export class RouterOSSshClient {
       ...(options.attributes !== undefined && { attributes: options.attributes }),
     });
     const materializedIdentity = await materializeIdentityFile(this.options.identityFile);
-    const args = createSshArgs(
-      this.options,
-      remoteCommand,
-      materializedIdentity.path
-    );
+    const args = createSshArgs(this.options, remoteCommand, materializedIdentity.path);
     const spawnProcess: RouterOSSshSpawn =
       this.options.spawn ??
       ((nextCommand, nextArgs, nextOptions) =>
@@ -201,8 +197,7 @@ export class RouterOSSshClient {
     const child = spawnProcess(this.options.sshPath ?? "ssh", args, {
       ...(options.signal !== undefined && { signal: options.signal }),
     });
-    const deferred: Deferred<RouterOSSshCommandResult> =
-      createDeferred<RouterOSSshCommandResult>();
+    const deferred: Deferred<RouterOSSshCommandResult> = createDeferred<RouterOSSshCommandResult>();
     const stdout: Buffer[] = [];
     const stderr: Buffer[] = [];
 

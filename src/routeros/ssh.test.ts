@@ -158,8 +158,6 @@ describe("RouterOSSshClient", () => {
       }),
     });
 
-    await expect(client.execute("/bad/command")).rejects.toBeInstanceOf(
-      RouterOSSshCommandError
-    );
+    await expect(client.execute("/bad/command")).rejects.toBeInstanceOf(RouterOSSshCommandError);
   });
 });

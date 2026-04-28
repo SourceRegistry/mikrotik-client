@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { parseCertificate } from './x509';
+import { describe, expect, it } from "vitest";
+import { parseCertificate } from "./x509";
 
 // Self-signed RSA-2048 cert: CN=test.example.com, O=Test Org, C=US
 // SAN: DNS:test.example.com, IP:127.0.0.1 — keyUsage: digitalSignature,keyEncipherment
@@ -26,58 +26,58 @@ pT0EHqS6joi7SoXA2MDDCD+VionZxV77uxE1klAOuuLII0NrsOWM7NbAFjgEBwGx
 Caa3RiHi665nEU7fddmFq0rn84IMq0xhjgCBbQn5m0vsUBh+CxGvK+bWNs9C
 -----END CERTIFICATE-----`;
 
-describe('parseCertificate', () => {
-    it('parses a valid PEM certificate', () => {
-        const result = parseCertificate(TEST_CERT_PEM);
-        expect(result).toBeDefined();
-        expect(typeof result.subject).toBe('string');
-        expect(typeof result.issuer).toBe('string');
-        expect(typeof result.serialNumber).toBe('string');
-        expect(typeof result.validFrom).toBe('string');
-        expect(typeof result.validTo).toBe('string');
-        expect(typeof result.fingerprint256).toBe('string');
-        expect(typeof result.fingerprint512).toBe('string');
-        expect(Array.isArray(result.subjectAltNames)).toBe(true);
-        expect(typeof result.publicKeySize).toBe('string');
-        expect(result.pem).toBe(TEST_CERT_PEM);
-    });
+describe("parseCertificate", () => {
+  it("parses a valid PEM certificate", () => {
+    const result = parseCertificate(TEST_CERT_PEM);
+    expect(result).toBeDefined();
+    expect(typeof result.subject).toBe("string");
+    expect(typeof result.issuer).toBe("string");
+    expect(typeof result.serialNumber).toBe("string");
+    expect(typeof result.validFrom).toBe("string");
+    expect(typeof result.validTo).toBe("string");
+    expect(typeof result.fingerprint256).toBe("string");
+    expect(typeof result.fingerprint512).toBe("string");
+    expect(Array.isArray(result.subjectAltNames)).toBe(true);
+    expect(typeof result.publicKeySize).toBe("string");
+    expect(result.pem).toBe(TEST_CERT_PEM);
+  });
 
-    it('returns non-empty sha256 fingerprint', () => {
-        const result = parseCertificate(TEST_CERT_PEM);
-        expect(result.fingerprint256.length).toBeGreaterThan(0);
-        expect(result.fingerprint256).toMatch(/^[0-9A-F:]+$/);
-    });
+  it("returns non-empty sha256 fingerprint", () => {
+    const result = parseCertificate(TEST_CERT_PEM);
+    expect(result.fingerprint256.length).toBeGreaterThan(0);
+    expect(result.fingerprint256).toMatch(/^[0-9A-F:]+$/);
+  });
 
-    it('is self-signed (subject === issuer)', () => {
-        const result = parseCertificate(TEST_CERT_PEM);
-        expect(result.subject).toBe(result.issuer);
-    });
+  it("is self-signed (subject === issuer)", () => {
+    const result = parseCertificate(TEST_CERT_PEM);
+    expect(result.subject).toBe(result.issuer);
+  });
 
-    it('keyUsage is always an array (even when Node returns undefined for extension)', () => {
-        const result = parseCertificate(TEST_CERT_PEM);
-        // X509Certificate.keyUsage returns undefined in Node ≤ v24 despite extension present;
-        // parseCertificate normalises to [].
-        expect(Array.isArray(result.keyUsage)).toBe(true);
-    });
+  it("keyUsage is always an array (even when Node returns undefined for extension)", () => {
+    const result = parseCertificate(TEST_CERT_PEM);
+    // X509Certificate.keyUsage returns undefined in Node ≤ v24 despite extension present;
+    // parseCertificate normalises to [].
+    expect(Array.isArray(result.keyUsage)).toBe(true);
+  });
 
-    it('parses SANs including DNS and IP entries', () => {
-        const result = parseCertificate(TEST_CERT_PEM);
-        expect(result.subjectAltNames.some((s) => s.includes('test.example.com'))).toBe(true);
-        expect(result.subjectAltNames.some((s) => s.includes('127.0.0.1'))).toBe(true);
-    });
+  it("parses SANs including DNS and IP entries", () => {
+    const result = parseCertificate(TEST_CERT_PEM);
+    expect(result.subjectAltNames.some((s) => s.includes("test.example.com"))).toBe(true);
+    expect(result.subjectAltNames.some((s) => s.includes("127.0.0.1"))).toBe(true);
+  });
 
-    it('parses RSA public key size', () => {
-        const result = parseCertificate(TEST_CERT_PEM);
-        expect(result.publicKeySize).toBe('2048');
-    });
+  it("parses RSA public key size", () => {
+    const result = parseCertificate(TEST_CERT_PEM);
+    expect(result.publicKeySize).toBe("2048");
+  });
 
-    it('throws on invalid PEM', () => {
-        expect(() => parseCertificate('not a certificate')).toThrow();
-    });
+  it("throws on invalid PEM", () => {
+    expect(() => parseCertificate("not a certificate")).toThrow();
+  });
 
-    it('parses EC public key (namedCurve branch)', () => {
-        // Self-signed P-256 cert, no SAN
-        const EC_CERT_PEM = `-----BEGIN CERTIFICATE-----
+  it("parses EC public key (namedCurve branch)", () => {
+    // Self-signed P-256 cert, no SAN
+    const EC_CERT_PEM = `-----BEGIN CERTIFICATE-----
 MIIBkDCCATegAwIBAgIUX+hdlV9DD6z2AnARn4OIH24pBkYwCgYIKoZIzj0EAwIw
 HjEcMBoGA1UEAwwTZWMudGVzdC5leGFtcGxlLmNvbTAeFw0yNjA0MjcyMDEyMjNa
 Fw0zNjA0MjQyMDEyMjNaMB4xHDAaBgNVBAMME2VjLnRlc3QuZXhhbXBsZS5jb20w
@@ -88,13 +88,13 @@ kE4gAFaLm3OscjeykykwDwYDVR0TAQH/BAUwAwEB/zAKBggqhkjOPQQDAgNHADBE
 AiAMDnB4zlfW6SJxVr1zl9ewVGkTQrvXOdLg6X90JR3dWgIgd3qsvmxB6oFziy7j
 01kdnBUc4WFS7bJ32I8spuw8deg=
 -----END CERTIFICATE-----`;
-        const result = parseCertificate(EC_CERT_PEM);
-        expect(result.publicKeySize).toBe('prime256v1');
-    });
+    const result = parseCertificate(EC_CERT_PEM);
+    expect(result.publicKeySize).toBe("prime256v1");
+  });
 
-    it('returns empty subjectAltNames when no SAN extension', () => {
-        // Self-signed RSA cert without SAN
-        const NO_SAN_PEM = `-----BEGIN CERTIFICATE-----
+  it("returns empty subjectAltNames when no SAN extension", () => {
+    // Self-signed RSA cert without SAN
+    const NO_SAN_PEM = `-----BEGIN CERTIFICATE-----
 MIIDGzCCAgOgAwIBAgIUQTSQx+v/kMn2indpOCJXqDJJ87QwDQYJKoZIhvcNAQEL
 BQAwHTEbMBkGA1UEAwwSbm8tc2FuLmV4YW1wbGUuY29tMB4XDTI2MDQyNzIwMTIy
 M1oXDTM2MDQyNDIwMTIyM1owHTEbMBkGA1UEAwwSbm8tc2FuLmV4YW1wbGUuY29t
@@ -113,7 +113,7 @@ PhQY2x4tL3cB5pXAKtYcxO+tsamvjqqM6aZlvMPG00UaWy1KZssAwK/mfVgPwNCw
 gDM+RoNI4mxgoog6G26Vqe10q6b4XGRMQYOtTqFe9GFOQU7eQHwaZ9OxU3jLuOTS
 VNZRhr8lL6GfbnpnJvlWiX4rRnqBX8JigYEgBzkvDg==
 -----END CERTIFICATE-----`;
-        const result = parseCertificate(NO_SAN_PEM);
-        expect(result.subjectAltNames).toEqual([]);
-    });
+    const result = parseCertificate(NO_SAN_PEM);
+    expect(result.subjectAltNames).toEqual([]);
+  });
 });

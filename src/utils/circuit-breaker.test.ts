@@ -17,7 +17,9 @@ function makeTransport(executeFn: () => Promise<unknown>): DeviceTransport {
   return {
     execute: vi.fn(executeFn) as DeviceTransport["execute"],
     print: vi.fn(async () => []) as DeviceTransport["print"],
-    listen: vi.fn(async () => { throw new Error("not implemented"); }) as DeviceTransport["listen"],
+    listen: vi.fn(async () => {
+      throw new Error("not implemented");
+    }) as DeviceTransport["listen"],
   };
 }
 
@@ -98,7 +100,10 @@ describe("CircuitBreaker", () => {
 
 describe("withCircuitBreaker", () => {
   it("exposes circuitBreaker property", () => {
-    const transport = withCircuitBreaker(makeTransport(async () => ({})), fastConfig);
+    const transport = withCircuitBreaker(
+      makeTransport(async () => ({})),
+      fastConfig
+    );
     expect(transport.circuitBreaker).toBeInstanceOf(CircuitBreaker);
   });
 
@@ -142,7 +147,9 @@ describe("withCircuitBreaker", () => {
   });
 
   it("CircuitOpenError has code circuit_open and retriable true", async () => {
-    const inner = makeTransport(async () => { throw new Error("fail"); });
+    const inner = makeTransport(async () => {
+      throw new Error("fail");
+    });
     const transport = withCircuitBreaker(inner, fastConfig);
 
     for (let i = 0; i < fastConfig.failureThreshold; i++) {

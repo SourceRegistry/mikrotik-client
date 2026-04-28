@@ -1,29 +1,29 @@
-import type { DeviceTransport } from '../routeros/transport';
-import type { RouterOSCommandOptions } from '../routeros/index';
+import type { DeviceTransport } from "../routeros/transport";
+import type { RouterOSCommandOptions } from "../routeros/index";
 
 /**
  * Build RouterOSCommandOptions with conditional inclusion of optional fields.
  * Required due to `exactOptionalPropertyTypes: true`.
  */
 function buildOpts(
-    base: Omit<RouterOSCommandOptions, 'signal' | 'timeoutMs'>,
-    signal: AbortSignal | undefined,
-    timeoutMs: number | undefined
+  base: Omit<RouterOSCommandOptions, "signal" | "timeoutMs">,
+  signal: AbortSignal | undefined,
+  timeoutMs: number | undefined
 ): RouterOSCommandOptions {
-    const opts: RouterOSCommandOptions = { ...base };
-    if (signal !== undefined) opts.signal = signal;
-    if (timeoutMs !== undefined) opts.timeoutMs = timeoutMs;
-    return opts;
+  const opts: RouterOSCommandOptions = { ...base };
+  if (signal !== undefined) opts.signal = signal;
+  if (timeoutMs !== undefined) opts.timeoutMs = timeoutMs;
+  return opts;
 }
 
 /**
  * Options for backup operations.
  */
 export type BackupOptions = {
-    /** Abort signal for cancellation. */
-    signal?: AbortSignal;
-    /** Timeout per command (ms). */
-    timeoutMs?: number;
+  /** Abort signal for cancellation. */
+  signal?: AbortSignal;
+  /** Timeout per command (ms). */
+  timeoutMs?: number;
 };
 
 /**
@@ -46,16 +46,12 @@ export type BackupOptions = {
  * @param options - Optional signal and timeout.
  */
 export async function saveBackup(
-    transport: DeviceTransport,
-    name: string,
-    options: BackupOptions = {}
+  transport: DeviceTransport,
+  name: string,
+  options: BackupOptions = {}
 ): Promise<void> {
-    const opts = buildOpts(
-        { attributes: { file: name } },
-        options.signal,
-        options.timeoutMs
-    );
-    await transport.execute('/export', opts);
+  const opts = buildOpts({ attributes: { file: name } }, options.signal, options.timeoutMs);
+  await transport.execute("/export", opts);
 }
 
 /**
@@ -74,16 +70,12 @@ export async function saveBackup(
  * @param options - Optional signal and timeout.
  */
 export async function removeBackup(
-    transport: DeviceTransport,
-    name: string,
-    options: BackupOptions = {}
+  transport: DeviceTransport,
+  name: string,
+  options: BackupOptions = {}
 ): Promise<void> {
-    const opts = buildOpts(
-        { queries: [`name=${name}.rsc`] },
-        options.signal,
-        options.timeoutMs
-    );
-    await transport.execute('/file/remove', opts);
+  const opts = buildOpts({ queries: [`name=${name}.rsc`] }, options.signal, options.timeoutMs);
+  await transport.execute("/file/remove", opts);
 }
 
 /**
@@ -107,21 +99,21 @@ export async function removeBackup(
  * @throws {Error} If `confirm: true` is not provided.
  */
 export async function importExport(
-    transport: DeviceTransport,
-    fileName: string,
-    options: BackupOptions & { confirm: true }
+  transport: DeviceTransport,
+  fileName: string,
+  options: BackupOptions & { confirm: true }
 ): Promise<void> {
-    if (options.confirm !== true) {
-        throw new Error(
-            'importExport requires confirm: true to prevent accidental configuration overwrite'
-        );
-    }
-    const opts = buildOpts(
-        { attributes: { file: `${fileName}.rsc` } },
-        options.signal,
-        options.timeoutMs
+  if (options.confirm !== true) {
+    throw new Error(
+      "importExport requires confirm: true to prevent accidental configuration overwrite"
     );
-    await transport.execute('/import', opts);
+  }
+  const opts = buildOpts(
+    { attributes: { file: `${fileName}.rsc` } },
+    options.signal,
+    options.timeoutMs
+  );
+  await transport.execute("/import", opts);
 }
 
 /**
@@ -136,13 +128,13 @@ export async function importExport(
  * ```
  */
 export async function listBackups(
-    transport: DeviceTransport,
-    prefix?: string,
-    options: BackupOptions = {}
+  transport: DeviceTransport,
+  prefix?: string,
+  options: BackupOptions = {}
 ): Promise<Record<string, string>[]> {
-    const queries = prefix !== undefined ? [`name~^${prefix}`] : [];
-    const opts = buildOpts({ queries }, options.signal, options.timeoutMs);
-    return transport.print('/file', opts).then((results) =>
-        results.filter((r: Record<string, string>) => r.name?.endsWith('.rsc'))
-    );
+  const queries = prefix !== undefined ? [`name~^${prefix}`] : [];
+  const opts = buildOpts({ queries }, options.signal, options.timeoutMs);
+  return transport
+    .print("/file", opts)
+    .then((results) => results.filter((r: Record<string, string>) => r.name?.endsWith(".rsc")));
 }

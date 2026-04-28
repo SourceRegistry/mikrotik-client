@@ -21,7 +21,9 @@ function makeTransport(executeFn: () => Promise<unknown>): DeviceTransport {
   return {
     execute: vi.fn(executeFn) as DeviceTransport["execute"],
     print: vi.fn(async () => []) as DeviceTransport["print"],
-    listen: vi.fn(async () => { throw new Error("listen not implemented"); }) as DeviceTransport["listen"],
+    listen: vi.fn(async () => {
+      throw new Error("listen not implemented");
+    }) as DeviceTransport["listen"],
   };
 }
 
@@ -135,7 +137,9 @@ describe("withRetry", () => {
         if (calls < 2) throw new TestError("connection_refused", true);
         return [];
       }),
-      listen: vi.fn(async () => { throw new Error(); }),
+      listen: vi.fn(async () => {
+        throw new Error();
+      }),
     };
     const transport = withRetry(inner, policy);
 

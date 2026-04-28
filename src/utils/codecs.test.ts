@@ -72,9 +72,7 @@ describe("parseDuration", () => {
   it("parses days", () => expect(parseDuration("1d")).toBe(86400));
   it("parses weeks", () => expect(parseDuration("1w")).toBe(604800));
   it("parses compound duration", () =>
-    expect(parseDuration("1w2d3h4m5s")).toBe(
-      604800 + 2 * 86400 + 3 * 3600 + 4 * 60 + 5
-    ));
+    expect(parseDuration("1w2d3h4m5s")).toBe(604800 + 2 * 86400 + 3 * 3600 + 4 * 60 + 5));
   it("returns NaN for invalid input", () => expect(parseDuration("invalid")).toBeNaN());
   it("returns NaN for partial match", () => expect(parseDuration("1x")).toBeNaN());
 });
@@ -85,9 +83,7 @@ describe("serializeDuration", () => {
   it("serializes minutes and seconds", () => expect(serializeDuration(90)).toBe("1m30s"));
   it("serializes hours", () => expect(serializeDuration(3600)).toBe("1h"));
   it("serializes compound duration", () =>
-    expect(serializeDuration(604800 + 2 * 86400 + 3 * 3600 + 4 * 60 + 5)).toBe(
-      "1w2d3h4m5s"
-    ));
+    expect(serializeDuration(604800 + 2 * 86400 + 3 * 3600 + 4 * 60 + 5)).toBe("1w2d3h4m5s"));
 });
 
 describe("parseDuration / serializeDuration round-trip", () => {

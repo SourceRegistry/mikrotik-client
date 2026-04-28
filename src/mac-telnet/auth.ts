@@ -42,10 +42,10 @@ export const EC_POINT_UNCOMPRESSED_SIZE = 65;
  * ```
  */
 export interface ECKeyPair {
-    /** ECDH instance for computing shared secrets. */
-    ecdh: crypto.ECDH;
-    /** Raw uncompressed public key point (65 bytes: 0x04 || x || y). */
-    publicKey: Uint8Array;
+  /** ECDH instance for computing shared secrets. */
+  ecdh: crypto.ECDH;
+  /** Raw uncompressed public key point (65 bytes: 0x04 || x || y). */
+  publicKey: Uint8Array;
 }
 
 // ── MD5 Legacy Auth ──────────────────────────────────────────────────────────
@@ -65,10 +65,10 @@ export interface ECKeyPair {
  * ```
  */
 export function computeMD5Hash(password: string, salt: Uint8Array): Uint8Array {
-    const h = crypto.createHash("md5");
-    h.update(password, "utf8");
-    h.update(salt);
-    return new Uint8Array(h.digest());
+  const h = crypto.createHash("md5");
+  h.update(password, "utf8");
+  h.update(salt);
+  return new Uint8Array(h.digest());
 }
 
 // ── EC-SRP Auth ──────────────────────────────────────────────────────────────
@@ -84,17 +84,15 @@ export function computeMD5Hash(password: string, salt: Uint8Array): Uint8Array {
  * ```
  */
 export function generateClientECDHKey(): ECKeyPair {
-    // OpenSSL curve name for createECDH
-    const ecdh = crypto.createECDH("prime256v1");
-    ecdh.generateKeys();
+  // OpenSSL curve name for createECDH
+  const ecdh = crypto.createECDH("prime256v1");
+  ecdh.generateKeys();
 
-    // getPublicKey() returns raw SEC1 uncompressed point (65 bytes: 0x04 || x || y)
-    const rawPoint = ecdh.getPublicKey() as Uint8Array;
+  // getPublicKey() returns raw SEC1 uncompressed point (65 bytes: 0x04 || x || y)
+  const rawPoint = ecdh.getPublicKey() as Uint8Array;
 
-    return { ecdh, publicKey: rawPoint };
+  return { ecdh, publicKey: rawPoint };
 }
-
-
 
 /**
  * Compute the EC-SRP authentication response hash.
@@ -111,21 +109,21 @@ export function generateClientECDHKey(): ECKeyPair {
  * ```
  */
 export function computeECSRPHash(opts: {
-    username: string;
-    clientECDH: crypto.ECDH;
-    serverPublicKey: Uint8Array;
+  username: string;
+  clientECDH: crypto.ECDH;
+  serverPublicKey: Uint8Array;
 }): Uint8Array {
-    const { username, clientECDH, serverPublicKey } = opts;
+  const { username, clientECDH, serverPublicKey } = opts;
 
-    const shared = clientECDH.computeSecret(serverPublicKey);
-    if (!shared || shared.length === 0) {
-        throw new Error("ECDH shared secret computation failed");
-    }
+  const shared = clientECDH.computeSecret(serverPublicKey);
+  if (!shared || shared.length === 0) {
+    throw new Error("ECDH shared secret computation failed");
+  }
 
-    const hmac = crypto.createHmac("sha256", shared);
-    hmac.update(username, "utf8");
-    hmac.update(serverPublicKey);
-    return new Uint8Array(hmac.digest());
+  const hmac = crypto.createHmac("sha256", shared);
+  hmac.update(username, "utf8");
+  hmac.update(serverPublicKey);
+  return new Uint8Array(hmac.digest());
 }
 
 // ── Point helpers ────────────────────────────────────────────────────────────
@@ -138,19 +136,19 @@ export function computeECSRPHash(opts: {
  * @throws If length or prefix is invalid.
  */
 export function parseEcPoint(point: Uint8Array): [x: Uint8Array, y: Uint8Array] {
-    if (point.length !== EC_POINT_UNCOMPRESSED_SIZE) {
-        throw new Error(`Bad EC point length: ${point.length}`);
-    }
-    const prefix = point[0];
-    if (prefix === undefined || prefix !== 0x04) {
-        throw new Error(`Bad EC point prefix: 0x${prefix?.toString(16).padStart(2, "0") ?? "??"}`);
-    }
-    return [point.slice(1, 33), point.slice(33)];
+  if (point.length !== EC_POINT_UNCOMPRESSED_SIZE) {
+    throw new Error(`Bad EC point length: ${point.length}`);
+  }
+  const prefix = point[0];
+  if (prefix === undefined || prefix !== 0x04) {
+    throw new Error(`Bad EC point prefix: 0x${prefix?.toString(16).padStart(2, "0") ?? "??"}`);
+  }
+  return [point.slice(1, 33), point.slice(33)];
 }
 
 /**
  * Quick validation: correct length + uncompressed prefix.
  */
 export function isValidEcPublicKey(key: Uint8Array): boolean {
-    return key.length === EC_POINT_UNCOMPRESSED_SIZE && key[0] === 0x04;
+  return key.length === EC_POINT_UNCOMPRESSED_SIZE && key[0] === 0x04;
 }

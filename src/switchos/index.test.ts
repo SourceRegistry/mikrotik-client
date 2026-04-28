@@ -60,7 +60,9 @@ function createServer(
       return `http://127.0.0.1:${address.port}`;
     },
     async close() {
-      await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve()))
+      );
     },
   };
 }
@@ -101,8 +103,8 @@ describe("SwitchOS decodeSwitchOSLiteral edge cases", () => {
     expect(decodeSwitchOSLiteral("'\\n'")).toBe("\n");
     expect(decodeSwitchOSLiteral("'\\r'")).toBe("\r");
     expect(decodeSwitchOSLiteral("'\\t'")).toBe("\t");
-    expect(decodeSwitchOSLiteral("'\\\\'"  )).toBe("\\");
-    expect(decodeSwitchOSLiteral("'\\\"'")).toBe("\"");
+    expect(decodeSwitchOSLiteral("'\\\\'")).toBe("\\");
+    expect(decodeSwitchOSLiteral("'\\\"'")).toBe('"');
     expect(decodeSwitchOSLiteral("'\\x41'")).toBe("A");
     expect(decodeSwitchOSLiteral("'\\u0041'")).toBe("A");
     expect(decodeSwitchOSLiteral("'\\z'")).toBe("z"); // default fallthrough
@@ -155,7 +157,9 @@ describe("SwitchOS literal codec", () => {
 
     const encoded = encodeSwitchOSLiteral(payload);
 
-    expect(encoded).toBe("{iptp:0x1,ip:0x101a8c0,id:'737769746368',rows:[{vid:0x1,nm:'64656661756c74'}]}");
+    expect(encoded).toBe(
+      "{iptp:0x1,ip:0x101a8c0,id:'737769746368',rows:[{vid:0x1,nm:'64656661756c74'}]}"
+    );
     expect(decodeSwitchOSLiteral(encoded)).toEqual(payload);
   });
 
@@ -271,7 +275,9 @@ describe("SwitchOS client", () => {
       requestCount++;
       if (state.authorizedRequests === 1) {
         // Return 401 again with a new nonce on the second authorized request
-        response.writeHead(401, { "WWW-Authenticate": `Digest realm="${realm}", nonce="${nonce2}", qop="auth", algorithm=MD5` });
+        response.writeHead(401, {
+          "WWW-Authenticate": `Digest realm="${realm}", nonce="${nonce2}", qop="auth", algorithm=MD5`,
+        });
         response.end("stale nonce");
         return;
       }
@@ -338,7 +344,11 @@ describe("SwitchOS client", () => {
   it("handles no-credentials 401 → returns response", async () => {
     const client = new SwitchOSClient({
       baseUrl: "http://127.0.0.1",
-      fetch: async () => new Response("unauthorized", { status: 401, headers: { "WWW-Authenticate": createDigestHeader() } }),
+      fetch: async () =>
+        new Response("unauthorized", {
+          status: 401,
+          headers: { "WWW-Authenticate": createDigestHeader() },
+        }),
     });
     // No username/password → should not retry
     await expect(client.read("/sys.b")).rejects.toMatchObject({ status: 401 });
@@ -388,7 +398,17 @@ describe("SwitchOS client", () => {
 
   it("getEndpointSchema returns matching endpoint", () => {
     const client = new SwitchOSClient({ baseUrl: "http://127.0.0.1" });
-    const schema: SwitchOSSectionSchema = { tab_id: "sys", tab_title: "System", title: "System", url: "/sys.b", shape: "object", list: false, read_only: false, refresh_ms: null, controls: [] };
+    const schema: SwitchOSSectionSchema = {
+      tab_id: "sys",
+      tab_title: "System",
+      title: "System",
+      url: "/sys.b",
+      shape: "object",
+      list: false,
+      read_only: false,
+      refresh_ms: null,
+      controls: [],
+    };
     client.schema = { endpoints: { "/sys.b": schema } };
     expect(client.getEndpointSchema("/sys.b")).toBe(schema);
     expect(client.getEndpointSchema("/missing")).toBeUndefined();

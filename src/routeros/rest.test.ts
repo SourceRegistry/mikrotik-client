@@ -16,11 +16,12 @@ function mockFetch(
   body: unknown,
   headers: Record<string, string> = {}
 ): typeof globalThis.fetch {
-  return vi.fn(async () =>
-    new Response(typeof body === "string" ? body : JSON.stringify(body), {
-      status,
-      headers: { "content-type": "application/json", ...headers },
-    })
+  return vi.fn(
+    async () =>
+      new Response(typeof body === "string" ? body : JSON.stringify(body), {
+        status,
+        headers: { "content-type": "application/json", ...headers },
+      })
   );
 }
 
@@ -278,14 +279,16 @@ describe("RouterOSRestClient", () => {
         }),
       });
 
-      await expect(client.execute("/ip/address/remove", { attributes: { ".id": "*999" } }))
-        .rejects.toThrow(RouterOSRestTrapError);
-      await expect(client.execute("/ip/address/remove", { attributes: { ".id": "*999" } }))
-        .rejects.toMatchObject({
-          code: "trap",
-          detail: "no such item (4)",
-          httpStatus: 400,
-        });
+      await expect(
+        client.execute("/ip/address/remove", { attributes: { ".id": "*999" } })
+      ).rejects.toThrow(RouterOSRestTrapError);
+      await expect(
+        client.execute("/ip/address/remove", { attributes: { ".id": "*999" } })
+      ).rejects.toMatchObject({
+        code: "trap",
+        detail: "no such item (4)",
+        httpStatus: 400,
+      });
     });
 
     it("throws RouterOSRestProtocolError on 500", async () => {
@@ -421,7 +424,10 @@ describe("RouterOSRestClient", () => {
         baseUrl: "http://192.168.1.1",
         username: "admin",
         password: "test",
-        fetch: vi.fn(async () => new Response("42", { status: 200, headers: { "content-type": "application/json" } })),
+        fetch: vi.fn(
+          async () =>
+            new Response("42", { status: 200, headers: { "content-type": "application/json" } })
+        ),
       });
       const records = await client.print("/interface");
       expect(records).toEqual([]);
@@ -440,7 +446,9 @@ describe("RouterOSRestClient", () => {
           return new Response("[]", { status: 200 });
         }),
       });
-      await client.execute("/interface/set", { attributes: { list: [null, "wan"] as unknown as string[] } });
+      await client.execute("/interface/set", {
+        attributes: { list: [null, "wan"] as unknown as string[] },
+      });
       expect(calls[0]?.body).toContain(",wan");
     });
   });

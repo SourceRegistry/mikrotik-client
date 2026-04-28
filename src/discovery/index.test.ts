@@ -1,11 +1,7 @@
 import dgram from "node:dgram";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { discoverNeighbors, NeighborDiscoveryService, listenNeighbors } from "./index";
-import {
-  MNDP_TLV_ADDRESS,
-  MNDP_TLV_IDENTITY,
-  MNDP_TLV_VERSION,
-} from "./mndp";
+import { MNDP_TLV_ADDRESS, MNDP_TLV_IDENTITY, MNDP_TLV_VERSION } from "./mndp";
 import type { DiscoveredNeighbor, NeighborDiscoverySource } from "./index";
 
 function encodeTlv(type: number, value: Uint8Array): Buffer {

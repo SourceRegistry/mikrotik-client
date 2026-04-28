@@ -67,7 +67,10 @@ export abstract class MikrotikError extends Error {
   public abstract readonly retriable: boolean;
   public readonly context: MikrotikErrorContext;
 
-  public constructor(message: string, options?: { cause?: unknown; context?: MikrotikErrorContext }) {
+  public constructor(
+    message: string,
+    options?: { cause?: unknown; context?: MikrotikErrorContext }
+  ) {
     super(message, { cause: options?.cause });
     this.context = options?.context ?? {};
   }

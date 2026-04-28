@@ -46,21 +46,21 @@ export {
   isEnvSet,
   isSystemCommand,
   isBlock,
-} from './types';
+} from "./types";
 
 export {
   // Parser
   parseExport,
   type ParseExportOptions,
   ParseExportError,
-} from './parse';
+} from "./parse";
 
 export {
   // Renderer
   renderScript,
   renderIdentity,
   type RenderScriptOptions,
-} from './render';
+} from "./render";
 
 export {
   // Diff and patch
@@ -76,4 +76,4 @@ export {
   type ApplyPatchOptions,
   isPatchEmpty,
   patchSize,
-} from './diff';
+} from "./diff";

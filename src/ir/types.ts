@@ -21,31 +21,31 @@
  * Valid command verbs in a RouterOS resource block.
  */
 export type IRResourceCommand =
-  | 'add'
-  | 'set'
-  | 'remove'
-  | 'print'
-  | 'disable'
-  | 'enable'
-  | 'reset-counters'
-  | 'update'
-  | 'register'
-  | 'unregister';
+  | "add"
+  | "set"
+  | "remove"
+  | "print"
+  | "disable"
+  | "enable"
+  | "reset-counters"
+  | "update"
+  | "register"
+  | "unregister";
 
 /**
  * All resource command values for iteration.
  */
 export const IR_RESOURCE_COMMANDS: readonly IRResourceCommand[] = [
-  'add',
-  'set',
-  'remove',
-  'print',
-  'disable',
-  'enable',
-  'reset-counters',
-  'update',
-  'register',
-  'unregister',
+  "add",
+  "set",
+  "remove",
+  "print",
+  "disable",
+  "enable",
+  "reset-counters",
+  "update",
+  "register",
+  "unregister",
 ] as const;
 
 // ─── IR Nodes ─────────────────────────────────────────────────────────────────
@@ -66,7 +66,7 @@ export type IRProperty = {
  * A comment node preserved from the original export.
  */
 export type IRComment = {
-  kind: 'comment';
+  kind: "comment";
   /** Comment text without the leading `#` or `//`. */
   text: string;
 };
@@ -80,7 +80,7 @@ export type IRComment = {
  * - `/ip firewall filter remove [find comment="old rule"]`
  */
 export type IRResourceBlock = {
-  kind: 'resource';
+  kind: "resource";
   /** Full resource path (e.g., `"/interface ethernet"`, `"/ip address"`). */
   path: string;
   /** Command verb (e.g., `"add"`, `"set"`, `"remove"`). */
@@ -95,7 +95,7 @@ export type IRResourceBlock = {
  * An environment variable set command (`/env set ...`).
  */
 export type IREnvSet = {
-  kind: 'env';
+  kind: "env";
   /** Variable name. */
   name: string;
   /** Variable value. */
@@ -107,7 +107,7 @@ export type IREnvSet = {
  * These are preserved as-is for round-trip fidelity.
  */
 export type IRSystemCommand = {
-  kind: 'system';
+  kind: "system";
   /** The raw command text (e.g., `":delay 3s"`, `":put done"`). */
   command: string;
 };
@@ -117,7 +117,7 @@ export type IRSystemCommand = {
  * Preserved as a sequence of child items.
  */
 export type IRBlock = {
-  kind: 'block';
+  kind: "block";
   /** Items inside the `{ }` block. */
   items: IRItem[];
 };
@@ -133,15 +133,15 @@ export type IRItem = IRComment | IRResourceBlock | IREnvSet | IRSystemCommand | 
 /**
  * The kind discriminator for {@link IRItem}.
  */
-export type IRItemKind = IRItem['kind'];
+export type IRItemKind = IRItem["kind"];
 
 /** All IR item kinds for iteration. */
 export const IR_ITEM_KINDS: readonly IRItemKind[] = [
-  'comment',
-  'resource',
-  'env',
-  'system',
-  'block',
+  "comment",
+  "resource",
+  "env",
+  "system",
+  "block",
 ] as const;
 
 // ─── RouterOSConfig (Root IR) ─────────────────────────────────────────────────
@@ -192,33 +192,33 @@ export function createEmptyConfig(): RouterOSConfig {
  * Returns `true` if the item is a resource block.
  */
 export function isResourceBlock(item: IRItem): item is IRResourceBlock {
-  return item.kind === 'resource';
+  return item.kind === "resource";
 }
 
 /**
  * Narrow an {@link IRItem} to {@link IRComment}.
  */
 export function isComment(item: IRItem): item is IRComment {
-  return item.kind === 'comment';
+  return item.kind === "comment";
 }
 
 /**
  * Narrow an {@link IRItem} to {@link IREnvSet}.
  */
 export function isEnvSet(item: IRItem): item is IREnvSet {
-  return item.kind === 'env';
+  return item.kind === "env";
 }
 
 /**
  * Narrow an {@link IRItem} to {@link IRSystemCommand}.
  */
 export function isSystemCommand(item: IRItem): item is IRSystemCommand {
-  return item.kind === 'system';
+  return item.kind === "system";
 }
 
 /**
  * Narrow an {@link IRItem} to {@link IRBlock}.
  */
 export function isBlock(item: IRItem): item is IRBlock {
-  return item.kind === 'block';
+  return item.kind === "block";
 }

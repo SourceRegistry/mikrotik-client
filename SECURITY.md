@@ -2,11 +2,11 @@
 
 ## Supported versions
 
-| Version | Supported |
-|---------|-----------|
-| 1.0.x (stable, when released) | Yes |
-| 1.0.0-alpha.x | Best-effort |
-| < 1.0.0-alpha | No |
+| Version                       | Supported   |
+| ----------------------------- | ----------- |
+| 1.0.x (stable, when released) | Yes         |
+| 1.0.0-alpha.x                 | Best-effort |
+| < 1.0.0-alpha                 | No          |
 
 ## Reporting a vulnerability
 
@@ -15,6 +15,7 @@
 Email: a.p.a.slaa@projectsource.nl
 
 Include:
+
 - Description of the vulnerability
 - Steps to reproduce
 - Affected versions

@@ -23,8 +23,7 @@ export default defineConfig({
         "netinstall/index": resolve(__dirname, "src/netinstall/index.ts"),
       },
       formats: ["es", "cjs"],
-      fileName: (format, entryName) =>
-        format === "cjs" ? `${entryName}.cjs` : `${entryName}.js`,
+      fileName: (format, entryName) => (format === "cjs" ? `${entryName}.cjs` : `${entryName}.js`),
     },
     rollupOptions: {
       external: [...external],

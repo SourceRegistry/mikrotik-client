@@ -274,22 +274,14 @@ describe("SentenceDecoder", () => {
     const second = decoder.push(encoded.subarray(5));
 
     expect(first).toEqual([]);
-    expect(second).toEqual([
-      ["/system/resource/print", "=name=router1", ".tag=7"],
-    ]);
+    expect(second).toEqual([["/system/resource/print", "=name=router1", ".tag=7"]]);
   });
 
   it("decodes multiple sentences in one chunk", () => {
     const decoder = new SentenceDecoder();
-    const chunk = Buffer.concat([
-      encodeSentence(["/print"]),
-      encodeSentence(["/log", "print"]),
-    ]);
+    const chunk = Buffer.concat([encodeSentence(["/print"]), encodeSentence(["/log", "print"])]);
 
-    expect(decoder.push(chunk)).toEqual([
-      ["/print"],
-      ["/log", "print"],
-    ]);
+    expect(decoder.push(chunk)).toEqual([["/print"], ["/log", "print"]]);
   });
 
   it("decodes partial sentences incrementally", () => {
@@ -338,11 +330,23 @@ describe("SentenceDecoder", () => {
   it("produces buffer content correctly and works with real encoded data", () => {
     const decoder = new SentenceDecoder();
     // Encode a longer word to hit the path where currentWords is appended
-    const encoded = encodeSentence(["/interface", "bridge", "port", "add", "=bridge=b1", "=interface=ether1"]);
+    const encoded = encodeSentence([
+      "/interface",
+      "bridge",
+      "port",
+      "add",
+      "=bridge=b1",
+      "=interface=ether1",
+    ]);
     const sentences = decoder.push(encoded);
     expect(sentences).toHaveLength(1);
     expect(sentences[0]).toEqual([
-      "/interface", "bridge", "port", "add", "=bridge=b1", "=interface=ether1"
+      "/interface",
+      "bridge",
+      "port",
+      "add",
+      "=bridge=b1",
+      "=interface=ether1",
     ]);
   });
 });
@@ -389,7 +393,7 @@ describe("withTimeout", () => {
 
   it("calls onTimeout callback when timeout fires", async () => {
     const onTimeout = vi.fn();
-    const slow = new Promise<string>((_) => { });
+    const slow = new Promise<string>((_) => {});
     const result = withTimeout(slow, 100, "timeout", onTimeout);
 
     vi.advanceTimersByTime(200);

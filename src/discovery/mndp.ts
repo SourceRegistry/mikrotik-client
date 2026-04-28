@@ -97,9 +97,7 @@ function decodeMacAddress(value: Uint8Array): string | undefined {
   if (value.length < 6) {
     return undefined;
   }
-  return [...value.subarray(0, 6)]
-    .map((part) => part.toString(16).padStart(2, "0"))
-    .join(":");
+  return [...value.subarray(0, 6)].map((part) => part.toString(16).padStart(2, "0")).join(":");
 }
 
 function decodeLittleEndianUint32(value: Uint8Array): number | undefined {
@@ -188,14 +186,26 @@ export function toMNDPAdvertisement(
 
   const first = (type: number): MNDPTlvValue | undefined => tlvs.get(type)?.[0]?.value;
 
-  const macAddress = typeof first(MNDP_TLV_ADDRESS) === "string" ? (first(MNDP_TLV_ADDRESS) as string) : undefined;
-  const identity = typeof first(MNDP_TLV_IDENTITY) === "string" ? (first(MNDP_TLV_IDENTITY) as string) : undefined;
-  const versionString = typeof first(MNDP_TLV_VERSION) === "string" ? (first(MNDP_TLV_VERSION) as string) : undefined;
-  const platform = typeof first(MNDP_TLV_PLATFORM) === "string" ? (first(MNDP_TLV_PLATFORM) as string) : undefined;
-  const uptimeSeconds = typeof first(MNDP_TLV_TIMESTAMP) === "number" ? (first(MNDP_TLV_TIMESTAMP) as number) : undefined;
-  const softId = typeof first(MNDP_TLV_SOFT_ID) === "string" ? (first(MNDP_TLV_SOFT_ID) as string) : undefined;
-  const hardware = typeof first(MNDP_TLV_HARDWARE) === "string" ? (first(MNDP_TLV_HARDWARE) as string) : undefined;
-  const interfaceName = typeof first(MNDP_TLV_INTERFACE_NAME) === "string" ? (first(MNDP_TLV_INTERFACE_NAME) as string) : undefined;
+  const macAddress =
+    typeof first(MNDP_TLV_ADDRESS) === "string" ? (first(MNDP_TLV_ADDRESS) as string) : undefined;
+  const identity =
+    typeof first(MNDP_TLV_IDENTITY) === "string" ? (first(MNDP_TLV_IDENTITY) as string) : undefined;
+  const versionString =
+    typeof first(MNDP_TLV_VERSION) === "string" ? (first(MNDP_TLV_VERSION) as string) : undefined;
+  const platform =
+    typeof first(MNDP_TLV_PLATFORM) === "string" ? (first(MNDP_TLV_PLATFORM) as string) : undefined;
+  const uptimeSeconds =
+    typeof first(MNDP_TLV_TIMESTAMP) === "number"
+      ? (first(MNDP_TLV_TIMESTAMP) as number)
+      : undefined;
+  const softId =
+    typeof first(MNDP_TLV_SOFT_ID) === "string" ? (first(MNDP_TLV_SOFT_ID) as string) : undefined;
+  const hardware =
+    typeof first(MNDP_TLV_HARDWARE) === "string" ? (first(MNDP_TLV_HARDWARE) as string) : undefined;
+  const interfaceName =
+    typeof first(MNDP_TLV_INTERFACE_NAME) === "string"
+      ? (first(MNDP_TLV_INTERFACE_NAME) as string)
+      : undefined;
 
   return {
     version: packet.version,
@@ -232,7 +242,9 @@ export class MNDPListener
   implements AsyncIterable<MNDPAdvertisement>
 {
   private readonly queue: MNDPAdvertisement[] = [];
-  private readonly waiters: Array<ReturnType<typeof createDeferred<IteratorResult<MNDPAdvertisement>>>> = [];
+  private readonly waiters: Array<
+    ReturnType<typeof createDeferred<IteratorResult<MNDPAdvertisement>>>
+  > = [];
   private closed = false;
   private closeError?: unknown;
   private requestTimer: NodeJS.Timeout | undefined;
@@ -405,7 +417,9 @@ export async function listenMNDP(options: ListenMNDPOptions = {}): Promise<MNDPL
   return listener;
 }
 
-export async function discoverMNDP(options: DiscoverMNDPOptions = {}): Promise<MNDPAdvertisement[]> {
+export async function discoverMNDP(
+  options: DiscoverMNDPOptions = {}
+): Promise<MNDPAdvertisement[]> {
   const { timeoutMs = 3_000, dedupe = true, ...listenOptions } = options;
   const listener = await listenMNDP(listenOptions);
   const seen = new Map<string, MNDPAdvertisement>();

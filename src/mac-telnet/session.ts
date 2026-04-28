@@ -29,12 +29,7 @@ export type SessionState =
 /**
  * Session stage strings used in control packets.
  */
-export type SessionStage =
-  | "initial"
-  | "auth_request"
-  | "auth_response"
-  | "authenticated"
-  | "shell";
+export type SessionStage = "initial" | "auth_request" | "auth_response" | "authenticated" | "shell";
 
 // ── Byte Counter ─────────────────────────────────────────────────────────────
 
@@ -170,7 +165,7 @@ export function createSessionState(opts?: {
 export function updateByteCounter(
   session: MacTelnetSession,
   bytes: number,
-  direction: "sent" | "received" = "sent",
+  direction: "sent" | "received" = "sent"
 ): MacTelnetSession {
   const updated = { ...session };
 
@@ -209,7 +204,7 @@ export function updateByteCounter(
  */
 export function transitionState(
   session: MacTelnetSession,
-  newState: SessionState,
+  newState: SessionState
 ): MacTelnetSession {
   if (session.state === newState) {
     return session;
@@ -236,7 +231,7 @@ export function transitionState(
  */
 export function createRetransmitEvent(
   session: MacTelnetSession,
-  sequence: number,
+  sequence: number
 ): MacTelnetSession {
   const attempt = session.retransmitAttempt + 1;
   const updated = { ...session, retransmitAttempt: attempt };
@@ -265,10 +260,7 @@ export function resetRetransmit(session: MacTelnetSession): MacTelnetSession {
  * @param message - Error description.
  * @returns Session in "error" state with event logged.
  */
-export function sessionError(
-  session: MacTelnetSession,
-  message: string,
-): MacTelnetSession {
+export function sessionError(session: MacTelnetSession, message: string): MacTelnetSession {
   const event: SessionEvent = { kind: "error", message, state: session.state };
   const updated = transitionState(session, "error");
   updated.events = [event, ...updated.events].slice(0, updated.maxEvents);

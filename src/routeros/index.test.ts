@@ -36,26 +36,13 @@ function createMockServer() {
         }
 
         if (command === "/system/resource/print") {
-          socket.write(
-            encodeSentence([
-              "!re",
-              "=uptime=1d2h",
-              "=cpu-load=12",
-              `.tag=${tag}`,
-            ])
-          );
+          socket.write(encodeSentence(["!re", "=uptime=1d2h", "=cpu-load=12", `.tag=${tag}`]));
           socket.write(encodeSentence(["!done", `.tag=${tag}`]));
           continue;
         }
 
         if (command === "/system/identity/print") {
-          socket.write(
-            encodeSentence([
-              "!re",
-              "=name=mikrotik-lab",
-              `.tag=${tag}`,
-            ])
-          );
+          socket.write(encodeSentence(["!re", "=name=mikrotik-lab", `.tag=${tag}`]));
           socket.write(encodeSentence(["!done", `.tag=${tag}`]));
           continue;
         }
@@ -180,7 +167,10 @@ function createMockServer() {
           continue;
         }
 
-        if (command === "/interface/set" && getSentenceValue(sentence, "=", ".id") === "missing-interface") {
+        if (
+          command === "/interface/set" &&
+          getSentenceValue(sentence, "=", ".id") === "missing-interface"
+        ) {
           socket.write(
             encodeSentence([
               "!trap",
@@ -298,13 +288,7 @@ function createMockServer() {
 
         if (command === "/interface/bridge/print") {
           socket.write(
-            encodeSentence([
-              "!re",
-              "=.id=*4",
-              "=name=bridge",
-              "=vlan-filtering=no",
-              `.tag=${tag}`,
-            ])
+            encodeSentence(["!re", "=.id=*4", "=name=bridge", "=vlan-filtering=no", `.tag=${tag}`])
           );
           socket.write(encodeSentence(["!done", `.tag=${tag}`]));
           continue;
@@ -540,25 +524,14 @@ function createMockServer() {
         if (command === "/interface/listen") {
           listenTag = tag;
           socket.write(
-            encodeSentence([
-              "!re",
-              "=.id=*1",
-              "=name=ether1",
-              "=running=yes",
-              `.tag=${tag}`,
-            ])
+            encodeSentence(["!re", "=.id=*1", "=name=ether1", "=running=yes", `.tag=${tag}`])
           );
           continue;
         }
 
         if (command === "/cancel" && getSentenceValue(sentence, "=", "tag") === listenTag) {
           socket.write(
-            encodeSentence([
-              "!trap",
-              "=category=2",
-              "=message=interrupted",
-              `.tag=${listenTag}`,
-            ])
+            encodeSentence(["!trap", "=category=2", "=message=interrupted", `.tag=${listenTag}`])
           );
           socket.write(encodeSentence(["!done", `.tag=${tag}`]));
           socket.write(encodeSentence(["!done", `.tag=${listenTag}`]));
@@ -879,14 +852,15 @@ describe("RouterOSClient", () => {
       password: "",
     });
 
-    const [identity, bonds, bridgeVlans, bgpConnections, ipv6Neighbors, wifiClients] = await Promise.all([
-      client.system.identity.get(),
-      client.interface.bonding.list(),
-      client.bridge.vlan.list(),
-      client.routing.bgp.connection.list(),
-      client.ipv6.neighbor.list(),
-      client.interface.wifi.registrationTable.list(),
-    ]);
+    const [identity, bonds, bridgeVlans, bgpConnections, ipv6Neighbors, wifiClients] =
+      await Promise.all([
+        client.system.identity.get(),
+        client.interface.bonding.list(),
+        client.bridge.vlan.list(),
+        client.routing.bgp.connection.list(),
+        client.ipv6.neighbor.list(),
+        client.interface.wifi.registrationTable.list(),
+      ]);
 
     expect(identity?.name).toBe("mikrotik-lab");
     expect(bonds[0]?.name).toBe("bond-server01");
@@ -905,10 +879,19 @@ describe("RouterOSClient", () => {
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("server failed");
 
-    const client = new RouterOSClient({ host: "127.0.0.1", port: address.port, username: "admin", password: "" });
+    const client = new RouterOSClient({
+      host: "127.0.0.1",
+      port: address.port,
+      username: "admin",
+      password: "",
+    });
 
     const onReplyCalls: unknown[] = [];
-    const stream = await client.api.interface.listen({ onReply: (reply) => { onReplyCalls.push(reply); } });
+    const stream = await client.api.interface.listen({
+      onReply: (reply) => {
+        onReplyCalls.push(reply);
+      },
+    });
     await stream.nextReply(500);
     expect(onReplyCalls.length).toBeGreaterThan(0);
     await stream.cancel();
@@ -936,7 +919,12 @@ describe("RouterOSClient", () => {
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("server failed");
 
-    const client = new RouterOSClient({ host: "127.0.0.1", port: address.port, username: "admin", password: "" });
+    const client = new RouterOSClient({
+      host: "127.0.0.1",
+      port: address.port,
+      username: "admin",
+      password: "",
+    });
     // Login should complete even with the spurious unknown-tag reply
     await expect(client.execute("/login", {})).resolves.toBeDefined();
     await client.close();
@@ -964,7 +952,12 @@ describe("RouterOSClient", () => {
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("server failed");
 
-    const client = new RouterOSClient({ host: "127.0.0.1", port: address.port, username: "admin", password: "" });
+    const client = new RouterOSClient({
+      host: "127.0.0.1",
+      port: address.port,
+      username: "admin",
+      password: "",
+    });
     // execute will be pending when server drops the connection
     await expect(client.execute("/interface/print", {})).rejects.toThrow();
     await client.close();
@@ -992,7 +985,12 @@ describe("RouterOSClient", () => {
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("server failed");
 
-    const client = new RouterOSClient({ host: "127.0.0.1", port: address.port, username: "admin", password: "" });
+    const client = new RouterOSClient({
+      host: "127.0.0.1",
+      port: address.port,
+      username: "admin",
+      password: "",
+    });
     const stream = await client.api.interface.listen();
     await stream.nextReply(500);
     const closeReason = await new Promise<unknown>((resolve) => stream.once("close", resolve));
@@ -1019,7 +1017,12 @@ describe("RouterOSClient", () => {
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("server failed");
 
-    const client = new RouterOSClient({ host: "127.0.0.1", port: address.port, username: "admin", password: "" });
+    const client = new RouterOSClient({
+      host: "127.0.0.1",
+      port: address.port,
+      username: "admin",
+      password: "",
+    });
     const controller = new AbortController();
     const p = client.execute("/interface/print", { signal: controller.signal });
     // Abort after small delay to let command get registered
@@ -1049,14 +1052,19 @@ describe("RouterOSClient", () => {
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("server failed");
 
-    const client = new RouterOSClient({ host: "127.0.0.1", port: address.port, username: "admin", password: "" });
+    const client = new RouterOSClient({
+      host: "127.0.0.1",
+      port: address.port,
+      username: "admin",
+      password: "",
+    });
     const controller = new AbortController();
     const stream = await client.listen("/interface/listen", { signal: controller.signal });
     controller.abort();
     const result = await stream.nextReply(500).catch(() => "aborted");
     expect(result === undefined || result === "aborted").toBe(true);
     // Wait for any async cancel operations to complete before closing
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     await client.close();
   });
 
@@ -1078,10 +1086,17 @@ describe("RouterOSClient", () => {
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("server failed");
 
-    const client = new RouterOSClient({ host: "127.0.0.1", port: address.port, username: "admin", password: "" });
+    const client = new RouterOSClient({
+      host: "127.0.0.1",
+      port: address.port,
+      username: "admin",
+      password: "",
+    });
     const controller = new AbortController();
     controller.abort(); // pre-abort
-    await expect(client.execute("/interface/print", { signal: controller.signal })).rejects.toThrow();
+    await expect(
+      client.execute("/interface/print", { signal: controller.signal })
+    ).rejects.toThrow();
     await client.close();
   });
 });

@@ -37,12 +37,12 @@ export const HEADER_LEN = 22;
 export const CONTROL_PACKET_MAGIC_BYTES = [0x56, 0x34, 0x12, 0xff] as const;
 
 function matchesMagic(data: Uint8Array, offset: number): boolean {
-    return (
-        data[offset] === CONTROL_PACKET_MAGIC_BYTES[0] &&
-        data[offset + 1] === CONTROL_PACKET_MAGIC_BYTES[1] &&
-        data[offset + 2] === CONTROL_PACKET_MAGIC_BYTES[2] &&
-        data[offset + 3] === CONTROL_PACKET_MAGIC_BYTES[3]
-    );
+  return (
+    data[offset] === CONTROL_PACKET_MAGIC_BYTES[0] &&
+    data[offset + 1] === CONTROL_PACKET_MAGIC_BYTES[1] &&
+    data[offset + 2] === CONTROL_PACKET_MAGIC_BYTES[2] &&
+    data[offset + 3] === CONTROL_PACKET_MAGIC_BYTES[3]
+  );
 }
 
 /** Size of the control packet header: magic(4) + type(1) + length(4). */
@@ -62,18 +62,18 @@ export type MacTelnetPacketType = "start" | "data" | "ack" | "end";
 
 /** Numeric ptype value → string. */
 const PTYPE_NUM_TO_STR: ReadonlyMap<number, MacTelnetPacketType> = new Map([
-    [0, "start"],
-    [1, "data"],
-    [2, "ack"],
-    [255, "end"],
+  [0, "start"],
+  [1, "data"],
+  [2, "ack"],
+  [255, "end"],
 ]);
 
 /** String ptype → numeric value. */
 const PTYPE_STR_TO_NUM: ReadonlyMap<MacTelnetPacketType, number> = new Map([
-    ["start", 0],
-    ["data", 1],
-    ["ack", 2],
-    ["end", 255],
+  ["start", 0],
+  ["data", 1],
+  ["ack", 2],
+  ["end", 255],
 ]);
 
 // ── Control Packet Type ──────────────────────────────────────────────────────
@@ -87,64 +87,64 @@ const PTYPE_STR_TO_NUM: ReadonlyMap<MacTelnetPacketType, number> = new Map([
  * ```
  */
 export type MacTelnetControlPacketType =
-    | "begin_auth"    // 0  — Client initiates authentication
-    | "passsalt"      // 1  — Server sends encryption key / salt
-    | "password"      // 2  — Client sends password hash
-    | "username"      // 3  — Client sends username
-    | "term_type"     // 4  — Client sends terminal type string
-    | "term_width"    // 5  — Client sends terminal width (2 bytes LE)
-    | "term_height"   // 6  — Client sends terminal height (2 bytes LE)
-    | "unknown_7"     // 7  — Possibly "received invalid control packet"
-    | "end_auth"      // 9  — Server confirms authentication complete
-    | "passsalt_client"; // 8 — Client sends username + null + EC public key (EC-SRP)
+  | "begin_auth" // 0  — Client initiates authentication
+  | "passsalt" // 1  — Server sends encryption key / salt
+  | "password" // 2  — Client sends password hash
+  | "username" // 3  — Client sends username
+  | "term_type" // 4  — Client sends terminal type string
+  | "term_width" // 5  — Client sends terminal width (2 bytes LE)
+  | "term_height" // 6  — Client sends terminal height (2 bytes LE)
+  | "unknown_7" // 7  — Possibly "received invalid control packet"
+  | "end_auth" // 9  — Server confirms authentication complete
+  | "passsalt_client"; // 8 — Client sends username + null + EC public key (EC-SRP)
 
 /** Numeric cptype → string. */
 const CPTYPE_NUM_TO_STR: ReadonlyMap<number, MacTelnetControlPacketType> = new Map([
-    [0, "begin_auth"],
-    [1, "passsalt"],
-    [2, "password"],
-    [3, "username"],
-    [4, "term_type"],
-    [5, "term_width"],
-    [6, "term_height"],
-    [7, "unknown_7"],
-    [8, "passsalt_client"],
-    [9, "end_auth"],
+  [0, "begin_auth"],
+  [1, "passsalt"],
+  [2, "password"],
+  [3, "username"],
+  [4, "term_type"],
+  [5, "term_width"],
+  [6, "term_height"],
+  [7, "unknown_7"],
+  [8, "passsalt_client"],
+  [9, "end_auth"],
 ]);
 
 const CPTYPE_STR_TO_NUM: ReadonlyMap<MacTelnetControlPacketType, number> = new Map([
-    ["begin_auth", 0],
-    ["passsalt", 1],
-    ["password", 2],
-    ["username", 3],
-    ["term_type", 4],
-    ["term_width", 5],
-    ["term_height", 6],
-    ["unknown_7", 7],
-    ["passsalt_client", 8],
-    ["end_auth", 9],
+  ["begin_auth", 0],
+  ["passsalt", 1],
+  ["password", 2],
+  ["username", 3],
+  ["term_type", 4],
+  ["term_width", 5],
+  ["term_height", 6],
+  ["unknown_7", 7],
+  ["passsalt_client", 8],
+  ["end_auth", 9],
 ]);
 
 /** Runtime array of all known control packet types. */
 export const MAC_TELNET_CONTROL_PACKET_TYPES: readonly MacTelnetControlPacketType[] = [
-    "begin_auth",
-    "passsalt",
-    "password",
-    "username",
-    "term_type",
-    "term_width",
-    "term_height",
-    "unknown_7",
-    "passsalt_client",
-    "end_auth",
+  "begin_auth",
+  "passsalt",
+  "password",
+  "username",
+  "term_type",
+  "term_width",
+  "term_height",
+  "unknown_7",
+  "passsalt_client",
+  "end_auth",
 ];
 
 /** Runtime array of all known packet types. */
 export const MAC_TELNET_PACKET_TYPES: readonly MacTelnetPacketType[] = [
-    "start",
-    "data",
-    "ack",
-    "end",
+  "start",
+  "data",
+  "ack",
+  "end",
 ];
 
 // ── Packet Type ──────────────────────────────────────────────────────────────
@@ -167,22 +167,22 @@ export const MAC_TELNET_PACKET_TYPES: readonly MacTelnetPacketType[] = [
  * ```
  */
 export type MacTelnetPacket = {
-    /** Protocol version (should be 0x01). */
-    version: number;
-    /** Packet type. */
-    ptype: MacTelnetPacketType;
-    /** 6-byte source MAC address. */
-    srcMac: Uint8Array;
-    /** 6-byte destination MAC address. */
-    dstMac: Uint8Array;
-    /** 16-bit session ID (client-generated, unique per session). */
-    sessionKey: number;
-    /** 16-bit client type identifier. */
-    clientType: number;
-    /** Cumulative byte counter (sent or received, depending on direction). */
-    counter: number;
-    /** Variable-length payload (control packets or raw shell data). */
-    data: Uint8Array;
+  /** Protocol version (should be 0x01). */
+  version: number;
+  /** Packet type. */
+  ptype: MacTelnetPacketType;
+  /** 6-byte source MAC address. */
+  srcMac: Uint8Array;
+  /** 6-byte destination MAC address. */
+  dstMac: Uint8Array;
+  /** 16-bit session ID (client-generated, unique per session). */
+  sessionKey: number;
+  /** 16-bit client type identifier. */
+  clientType: number;
+  /** Cumulative byte counter (sent or received, depending on direction). */
+  counter: number;
+  /** Variable-length payload (control packets or raw shell data). */
+  data: Uint8Array;
 };
 
 // ── Control Packet Type ──────────────────────────────────────────────────────
@@ -199,10 +199,10 @@ export type MacTelnetPacket = {
  * ```
  */
 export type MacTelnetControlPacket = {
-    /** Control packet type. */
-    type: MacTelnetControlPacketType;
-    /** Variable-length payload (empty for begin_auth, end_auth). */
-    data: Uint8Array;
+  /** Control packet type. */
+  type: MacTelnetControlPacketType;
+  /** Variable-length payload (empty for begin_auth, end_auth). */
+  data: Uint8Array;
 };
 
 // ── MAC helpers ───────────────────────────────────────────────────────────────
@@ -221,24 +221,24 @@ export type MacTelnetControlPacket = {
  * ```
  */
 export function parseMac(mac: string): Uint8Array {
-    const normalized = mac.replace(/-/g, ":");
-    const parts = normalized.split(":");
-    if (parts.length !== 6) {
-        throw new Error(`Invalid MAC address: ${mac}`);
+  const normalized = mac.replace(/-/g, ":");
+  const parts = normalized.split(":");
+  if (parts.length !== 6) {
+    throw new Error(`Invalid MAC address: ${mac}`);
+  }
+  const result = new Uint8Array(6);
+  for (let i = 0; i < 6; i++) {
+    const part = parts[i];
+    if (part === undefined) {
+      throw new Error(`Invalid MAC address: ${mac}`);
     }
-    const result = new Uint8Array(6);
-    for (let i = 0; i < 6; i++) {
-        const part = parts[i];
-        if (part === undefined) {
-            throw new Error(`Invalid MAC address: ${mac}`);
-        }
-        const byte = parseInt(part, 16);
-        if (isNaN(byte) || byte < 0 || byte > 255) {
-            throw new Error(`Invalid MAC octet "${part}" in ${mac}`);
-        }
-        result[i] = byte;
+    const byte = parseInt(part, 16);
+    if (isNaN(byte) || byte < 0 || byte > 255) {
+      throw new Error(`Invalid MAC octet "${part}" in ${mac}`);
     }
-    return result;
+    result[i] = byte;
+  }
+  return result;
 }
 
 /**
@@ -254,12 +254,12 @@ export function parseMac(mac: string): Uint8Array {
  * ```
  */
 export function formatMac(bytes: Uint8Array): string {
-    if (bytes.length !== 6) {
-        throw new Error(`Expected 6 bytes, got ${bytes.length}`);
-    }
-    return Array.from(bytes)
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join(":");
+  if (bytes.length !== 6) {
+    throw new Error(`Expected 6 bytes, got ${bytes.length}`);
+  }
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join(":");
 }
 
 // ── Seskey packing/unpacking ─────────────────────────────────────────────────
@@ -270,29 +270,32 @@ export function formatMac(bytes: Uint8Array): string {
  * This produces `0xABCD0015` for session=0xABCD, type=0x0015.
  */
 function packSeskey(sessionKey: number, clientType: number): Uint8Array {
-    const buf = new Uint8Array(4);
-    buf[0] = (sessionKey >> 8) & 0xff;
-    buf[1] = sessionKey & 0xff;
-    buf[2] = (clientType >> 8) & 0xff;
-    buf[3] = clientType & 0xff;
-    return buf;
+  const buf = new Uint8Array(4);
+  buf[0] = (sessionKey >> 8) & 0xff;
+  buf[1] = sessionKey & 0xff;
+  buf[2] = (clientType >> 8) & 0xff;
+  buf[3] = clientType & 0xff;
+  return buf;
 }
 
 /**
  * Unpack a 4-byte seskey field.
  * Returns `{ sessionKey, clientType }`.
  */
-function unpackSeskey(buf: Uint8Array, offset: number): {
-    sessionKey: number;
-    clientType: number;
+function unpackSeskey(
+  buf: Uint8Array,
+  offset: number
+): {
+  sessionKey: number;
+  clientType: number;
 } {
-    const b0 = buf[offset] ?? 0;
-    const b1 = buf[offset + 1] ?? 0;
-    const b2 = buf[offset + 2] ?? 0;
-    const b3 = buf[offset + 3] ?? 0;
-    const sessionKey = (b0 << 8) | b1;
-    const clientType = (b2 << 8) | b3;
-    return { sessionKey, clientType };
+  const b0 = buf[offset] ?? 0;
+  const b1 = buf[offset + 1] ?? 0;
+  const b2 = buf[offset + 2] ?? 0;
+  const b3 = buf[offset + 3] ?? 0;
+  const sessionKey = (b0 << 8) | b1;
+  const clientType = (b2 << 8) | b3;
+  return { sessionKey, clientType };
 }
 
 // ── Encode / Decode ──────────────────────────────────────────────────────────
@@ -320,39 +323,39 @@ function unpackSeskey(buf: Uint8Array, offset: number): {
  * ```
  */
 export function encodePacket(pkt: MacTelnetPacket): Uint8Array {
-    const len = HEADER_LEN + pkt.data.length;
-    const buf = new Uint8Array(len);
-    let offset = 0;
+  const len = HEADER_LEN + pkt.data.length;
+  const buf = new Uint8Array(len);
+  let offset = 0;
 
-    // ver (1 byte)
-    buf[offset++] = pkt.version;
+  // ver (1 byte)
+  buf[offset++] = pkt.version;
 
-    // ptype (1 byte)
-    buf[offset++] = PTYPE_STR_TO_NUM.get(pkt.ptype) ?? 1;
+  // ptype (1 byte)
+  buf[offset++] = PTYPE_STR_TO_NUM.get(pkt.ptype) ?? 1;
 
-    // srcMac (6 bytes)
-    buf.set(pkt.srcMac, offset);
-    offset += ETHER_ADDR_LEN;
+  // srcMac (6 bytes)
+  buf.set(pkt.srcMac, offset);
+  offset += ETHER_ADDR_LEN;
 
-    // dstMac (6 bytes)
-    buf.set(pkt.dstMac, offset);
-    offset += ETHER_ADDR_LEN;
+  // dstMac (6 bytes)
+  buf.set(pkt.dstMac, offset);
+  offset += ETHER_ADDR_LEN;
 
-    // seskey + clientType (4 bytes)
-    buf.set(packSeskey(pkt.sessionKey, pkt.clientType), offset);
-    offset += 4;
+  // seskey + clientType (4 bytes)
+  buf.set(packSeskey(pkt.sessionKey, pkt.clientType), offset);
+  offset += 4;
 
-    // counter (4 bytes, big-endian)
-    buf[offset] = (pkt.counter >> 24) & 0xff;
-    buf[offset + 1] = (pkt.counter >> 16) & 0xff;
-    buf[offset + 2] = (pkt.counter >> 8) & 0xff;
-    buf[offset + 3] = pkt.counter & 0xff;
-    offset += 4;
+  // counter (4 bytes, big-endian)
+  buf[offset] = (pkt.counter >> 24) & 0xff;
+  buf[offset + 1] = (pkt.counter >> 16) & 0xff;
+  buf[offset + 2] = (pkt.counter >> 8) & 0xff;
+  buf[offset + 3] = pkt.counter & 0xff;
+  offset += 4;
 
-    // data (variable)
-    buf.set(pkt.data, offset);
+  // data (variable)
+  buf.set(pkt.data, offset);
 
-    return buf;
+  return buf;
 }
 
 /**
@@ -369,41 +372,38 @@ export function encodePacket(pkt: MacTelnetPacket): Uint8Array {
  * ```
  */
 export function decodePacket(buf: Uint8Array): MacTelnetPacket {
-    if (buf.length < HEADER_LEN) {
-        throw new Error(
-            `MAC-Telnet packet too short: ${buf.length} bytes (minimum ${HEADER_LEN})`,
-        );
-    }
+  if (buf.length < HEADER_LEN) {
+    throw new Error(`MAC-Telnet packet too short: ${buf.length} bytes (minimum ${HEADER_LEN})`);
+  }
 
-    let offset = 0;
+  let offset = 0;
 
-    const version = buf[offset++] ?? 0;
-    const ptypeNum = buf[offset++] ?? 0;
-    const ptype = PTYPE_NUM_TO_STR.get(ptypeNum);
-    if (!ptype) {
-        throw new Error(`Unknown MAC-Telnet ptype: ${ptypeNum}`);
-    }
+  const version = buf[offset++] ?? 0;
+  const ptypeNum = buf[offset++] ?? 0;
+  const ptype = PTYPE_NUM_TO_STR.get(ptypeNum);
+  if (!ptype) {
+    throw new Error(`Unknown MAC-Telnet ptype: ${ptypeNum}`);
+  }
 
-    const srcMac = buf.slice(offset, offset + ETHER_ADDR_LEN);
-    offset += ETHER_ADDR_LEN;
+  const srcMac = buf.slice(offset, offset + ETHER_ADDR_LEN);
+  offset += ETHER_ADDR_LEN;
 
-    const dstMac = buf.slice(offset, offset + ETHER_ADDR_LEN);
-    offset += ETHER_ADDR_LEN;
+  const dstMac = buf.slice(offset, offset + ETHER_ADDR_LEN);
+  offset += ETHER_ADDR_LEN;
 
-    const { sessionKey, clientType } = unpackSeskey(buf, offset);
-    offset += 4;
+  const { sessionKey, clientType } = unpackSeskey(buf, offset);
+  offset += 4;
 
-    const c0 = buf[offset] ?? 0;
-    const c1 = buf[offset + 1] ?? 0;
-    const c2 = buf[offset + 2] ?? 0;
-    const c3 = buf[offset + 3] ?? 0;
-    const counter =
-        (c0 << 24) | (c1 << 16) | (c2 << 8) | c3;
-    offset += 4;
+  const c0 = buf[offset] ?? 0;
+  const c1 = buf[offset + 1] ?? 0;
+  const c2 = buf[offset + 2] ?? 0;
+  const c3 = buf[offset + 3] ?? 0;
+  const counter = (c0 << 24) | (c1 << 16) | (c2 << 8) | c3;
+  offset += 4;
 
-    const data = buf.slice(offset);
+  const data = buf.slice(offset);
 
-    return { version, ptype, srcMac, dstMac, sessionKey, clientType, counter, data };
+  return { version, ptype, srcMac, dstMac, sessionKey, clientType, counter, data };
 }
 
 // ── Control Packet Encode / Decode ──────────────────────────────────────────────────────────
@@ -422,32 +422,32 @@ export function decodePacket(buf: Uint8Array): MacTelnetPacket {
  * ```
  */
 export function encodeControlPacket(cp: MacTelnetControlPacket): Uint8Array {
-    const len = CONTROL_HEADER_LEN + cp.data.length;
-    const buf = new Uint8Array(len);
-    let offset = 0;
+  const len = CONTROL_HEADER_LEN + cp.data.length;
+  const buf = new Uint8Array(len);
+  let offset = 0;
 
-    // magic (4 bytes, big-endian: 0x563412ff)
-    buf[offset] = 0x56;
-    buf[offset + 1] = 0x34;
-    buf[offset + 2] = 0x12;
-    buf[offset + 3] = 0xff;
-    offset += 4;
+  // magic (4 bytes, big-endian: 0x563412ff)
+  buf[offset] = 0x56;
+  buf[offset + 1] = 0x34;
+  buf[offset + 2] = 0x12;
+  buf[offset + 3] = 0xff;
+  offset += 4;
 
-    // type (1 byte)
-    buf[offset++] = CPTYPE_STR_TO_NUM.get(cp.type) ?? 0;
+  // type (1 byte)
+  buf[offset++] = CPTYPE_STR_TO_NUM.get(cp.type) ?? 0;
 
-    // length (4 bytes, big-endian)
-    const dLen = cp.data.length;
-    buf[offset] = (dLen >> 24) & 0xff;
-    buf[offset + 1] = (dLen >> 16) & 0xff;
-    buf[offset + 2] = (dLen >> 8) & 0xff;
-    buf[offset + 3] = dLen & 0xff;
-    offset += 4;
+  // length (4 bytes, big-endian)
+  const dLen = cp.data.length;
+  buf[offset] = (dLen >> 24) & 0xff;
+  buf[offset + 1] = (dLen >> 16) & 0xff;
+  buf[offset + 2] = (dLen >> 8) & 0xff;
+  buf[offset + 3] = dLen & 0xff;
+  offset += 4;
 
-    // data
-    buf.set(cp.data, offset);
+  // data
+  buf.set(cp.data, offset);
 
-    return buf;
+  return buf;
 }
 
 /**
@@ -466,58 +466,57 @@ export function encodeControlPacket(cp: MacTelnetControlPacket): Uint8Array {
  * ```
  */
 export function decodeControlPackets(data: Uint8Array): {
-    controlPackets: MacTelnetControlPacket[];
-    rawData: Uint8Array;
+  controlPackets: MacTelnetControlPacket[];
+  rawData: Uint8Array;
 } {
-    const controlPackets: MacTelnetControlPacket[] = [];
-    const rawSegments: Uint8Array[] = [];
+  const controlPackets: MacTelnetControlPacket[] = [];
+  const rawSegments: Uint8Array[] = [];
 
-    let offset = 0;
-    while (offset < data.length) {
-        // Check for magic at current position
-        if (offset + 4 <= data.length) {
-            if (matchesMagic(data, offset)) {
-                // Parse control packet
-                if (offset + CONTROL_HEADER_LEN > data.length) {
-                    break;
-                }
-
-                const typeNum = data[offset + 4] ?? 0;
-                const cptype = CPTYPE_NUM_TO_STR.get(typeNum);
-                if (!cptype) {
-                    // Unknown control type — treat as raw data
-                    rawSegments.push(data.slice(offset, offset + 1));
-                    offset++;
-                    continue;
-                }
-
-                const lengthBe = new DataView(data.buffer, data.byteOffset + offset + 5, 4);
-                const cpLen = lengthBe.getUint32(0, false);
-
-                const end = offset + CONTROL_HEADER_LEN + cpLen;
-                if (end > data.length) {
-                    break;
-                }
-
-                controlPackets.push({
-                    type: cptype,
-                    data: data.slice(offset + CONTROL_HEADER_LEN, end),
-                });
-
-                offset = end;
-                continue;
-            }
+  let offset = 0;
+  while (offset < data.length) {
+    // Check for magic at current position
+    if (offset + 4 <= data.length) {
+      if (matchesMagic(data, offset)) {
+        // Parse control packet
+        if (offset + CONTROL_HEADER_LEN > data.length) {
+          break;
         }
 
-        // Not a control packet — raw shell data
-        rawSegments.push(data.slice(offset, offset + 1));
-        offset++;
+        const typeNum = data[offset + 4] ?? 0;
+        const cptype = CPTYPE_NUM_TO_STR.get(typeNum);
+        if (!cptype) {
+          // Unknown control type — treat as raw data
+          rawSegments.push(data.slice(offset, offset + 1));
+          offset++;
+          continue;
+        }
+
+        const lengthBe = new DataView(data.buffer, data.byteOffset + offset + 5, 4);
+        const cpLen = lengthBe.getUint32(0, false);
+
+        const end = offset + CONTROL_HEADER_LEN + cpLen;
+        if (end > data.length) {
+          break;
+        }
+
+        controlPackets.push({
+          type: cptype,
+          data: data.slice(offset + CONTROL_HEADER_LEN, end),
+        });
+
+        offset = end;
+        continue;
+      }
     }
 
-    const rawData =
-        rawSegments.length > 0 ? concatUint8Arrays(rawSegments) : new Uint8Array(0);
+    // Not a control packet — raw shell data
+    rawSegments.push(data.slice(offset, offset + 1));
+    offset++;
+  }
 
-    return { controlPackets, rawData };
+  const rawData = rawSegments.length > 0 ? concatUint8Arrays(rawSegments) : new Uint8Array(0);
+
+  return { controlPackets, rawData };
 }
 
 // ── Builder helpers ──────────────────────────────────────────────────────────
@@ -538,21 +537,21 @@ export function decodeControlPackets(data: Uint8Array): {
  * ```
  */
 export function buildStartPacket(opts: {
-    srcMac: Uint8Array;
-    dstMac: Uint8Array;
-    sessionKey: number;
-    clientType?: number;
+  srcMac: Uint8Array;
+  dstMac: Uint8Array;
+  sessionKey: number;
+  clientType?: number;
 }): Uint8Array {
-    return encodePacket({
-        version: PROTOCOL_VERSION,
-        ptype: "start",
-        srcMac: opts.srcMac,
-        dstMac: opts.dstMac,
-        sessionKey: opts.sessionKey,
-        clientType: opts.clientType ?? CLIENT_TYPE_MACTELNET,
-        counter: 0,
-        data: new Uint8Array(0),
-    });
+  return encodePacket({
+    version: PROTOCOL_VERSION,
+    ptype: "start",
+    srcMac: opts.srcMac,
+    dstMac: opts.dstMac,
+    sessionKey: opts.sessionKey,
+    clientType: opts.clientType ?? CLIENT_TYPE_MACTELNET,
+    counter: 0,
+    data: new Uint8Array(0),
+  });
 }
 
 /**
@@ -562,21 +561,21 @@ export function buildStartPacket(opts: {
  * @returns Encoded packet ready for UDP send.
  */
 export function buildEndPacket(opts: {
-    srcMac: Uint8Array;
-    dstMac: Uint8Array;
-    sessionKey: number;
-    clientType?: number;
+  srcMac: Uint8Array;
+  dstMac: Uint8Array;
+  sessionKey: number;
+  clientType?: number;
 }): Uint8Array {
-    return encodePacket({
-        version: PROTOCOL_VERSION,
-        ptype: "end",
-        srcMac: opts.srcMac,
-        dstMac: opts.dstMac,
-        sessionKey: opts.sessionKey,
-        clientType: opts.clientType ?? CLIENT_TYPE_MACTELNET,
-        counter: 0,
-        data: new Uint8Array(0),
-    });
+  return encodePacket({
+    version: PROTOCOL_VERSION,
+    ptype: "end",
+    srcMac: opts.srcMac,
+    dstMac: opts.dstMac,
+    sessionKey: opts.sessionKey,
+    clientType: opts.clientType ?? CLIENT_TYPE_MACTELNET,
+    counter: 0,
+    data: new Uint8Array(0),
+  });
 }
 
 /**
@@ -597,25 +596,25 @@ export function buildEndPacket(opts: {
  * ```
  */
 export function buildControlDataPacket(opts: {
-    srcMac: Uint8Array;
-    dstMac: Uint8Array;
-    sessionKey: number;
-    clientType?: number;
-    counter: number;
-    controlPackets: MacTelnetControlPacket[];
+  srcMac: Uint8Array;
+  dstMac: Uint8Array;
+  sessionKey: number;
+  clientType?: number;
+  counter: number;
+  controlPackets: MacTelnetControlPacket[];
 }): Uint8Array {
-    const parts = opts.controlPackets.map(encodeControlPacket);
-    const data = concatUint8Arrays(parts);
-    return encodePacket({
-        version: PROTOCOL_VERSION,
-        ptype: "data",
-        srcMac: opts.srcMac,
-        dstMac: opts.dstMac,
-        sessionKey: opts.sessionKey,
-        clientType: opts.clientType ?? CLIENT_TYPE_MACTELNET,
-        counter: opts.counter,
-        data,
-    });
+  const parts = opts.controlPackets.map(encodeControlPacket);
+  const data = concatUint8Arrays(parts);
+  return encodePacket({
+    version: PROTOCOL_VERSION,
+    ptype: "data",
+    srcMac: opts.srcMac,
+    dstMac: opts.dstMac,
+    sessionKey: opts.sessionKey,
+    clientType: opts.clientType ?? CLIENT_TYPE_MACTELNET,
+    counter: opts.counter,
+    data,
+  });
 }
 
 /**
@@ -637,22 +636,22 @@ export function buildControlDataPacket(opts: {
  * ```
  */
 export function buildAckPacket(opts: {
-    srcMac: Uint8Array;
-    dstMac: Uint8Array;
-    sessionKey: number;
-    counter: number;
-    clientType?: number;
+  srcMac: Uint8Array;
+  dstMac: Uint8Array;
+  sessionKey: number;
+  counter: number;
+  clientType?: number;
 }): Uint8Array {
-    return encodePacket({
-        version: PROTOCOL_VERSION,
-        ptype: "ack",
-        srcMac: opts.srcMac,
-        dstMac: opts.dstMac,
-        sessionKey: opts.sessionKey,
-        clientType: opts.clientType ?? CLIENT_TYPE_MACTELNET,
-        counter: opts.counter,
-        data: new Uint8Array(0),
-    });
+  return encodePacket({
+    version: PROTOCOL_VERSION,
+    ptype: "ack",
+    srcMac: opts.srcMac,
+    dstMac: opts.dstMac,
+    sessionKey: opts.sessionKey,
+    clientType: opts.clientType ?? CLIENT_TYPE_MACTELNET,
+    counter: opts.counter,
+    data: new Uint8Array(0),
+  });
 }
 
 /**
@@ -662,36 +661,36 @@ export function buildAckPacket(opts: {
  * @returns Encoded packet ready for UDP send.
  */
 export function buildShellDataPacket(opts: {
-    srcMac: Uint8Array;
-    dstMac: Uint8Array;
-    sessionKey: number;
-    clientType?: number;
-    counter: number;
-    shellData: Uint8Array;
+  srcMac: Uint8Array;
+  dstMac: Uint8Array;
+  sessionKey: number;
+  clientType?: number;
+  counter: number;
+  shellData: Uint8Array;
 }): Uint8Array {
-    return encodePacket({
-        version: PROTOCOL_VERSION,
-        ptype: "data",
-        srcMac: opts.srcMac,
-        dstMac: opts.dstMac,
-        sessionKey: opts.sessionKey,
-        clientType: opts.clientType ?? CLIENT_TYPE_MACTELNET,
-        counter: opts.counter,
-        data: opts.shellData,
-    });
+  return encodePacket({
+    version: PROTOCOL_VERSION,
+    ptype: "data",
+    srcMac: opts.srcMac,
+    dstMac: opts.dstMac,
+    sessionKey: opts.sessionKey,
+    clientType: opts.clientType ?? CLIENT_TYPE_MACTELNET,
+    counter: opts.counter,
+    data: opts.shellData,
+  });
 }
 
 // ── Utilities ────────────────────────────────────────────────────────────────
 
 function concatUint8Arrays(arrays: Uint8Array[]): Uint8Array {
-    if (arrays.length === 0) return new Uint8Array(0);
-    if (arrays.length === 1) return arrays[0] ?? new Uint8Array(0);
-    const total = arrays.reduce((sum, a) => sum + a.length, 0);
-    const result = new Uint8Array(total);
-    let offset = 0;
-    for (const arr of arrays) {
-        result.set(arr, offset);
-        offset += arr.length;
-    }
-    return result;
+  if (arrays.length === 0) return new Uint8Array(0);
+  if (arrays.length === 1) return arrays[0] ?? new Uint8Array(0);
+  const total = arrays.reduce((sum, a) => sum + a.length, 0);
+  const result = new Uint8Array(total);
+  let offset = 0;
+  for (const arr of arrays) {
+    result.set(arr, offset);
+    offset += arr.length;
+  }
+  return result;
 }
