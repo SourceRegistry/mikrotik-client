@@ -344,7 +344,9 @@ function normalizePath(path: string): string {
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const proto = Object.getPrototypeOf(value) as unknown;
+  return proto === null || proto === Object.prototype;
 }
 
 function toUint8Array(value: ArrayBuffer | ArrayBufferView): Uint8Array {
@@ -406,12 +408,15 @@ function parseDigestChallenge(header: string | null): DigestChallenge | undefine
   const nonce = values.get("nonce");
   if (!realm || !nonce) return undefined;
 
+  const opaque = values.get("opaque");
+  const qop = values.get("qop");
+
   return {
     realm,
     nonce,
-    opaque: values.get("opaque"),
+    ...(opaque !== undefined && { opaque }),
     algorithm: values.get("algorithm") ?? "MD5",
-    qop: values.get("qop"),
+    ...(qop !== undefined && { qop }),
     stale: values.get("stale") === "true",
   };
 }
@@ -522,11 +527,12 @@ export function encodeSwitchOSIpv4(value: string): number {
     throw new TypeError(`Invalid IPv4 address: ${value}`);
   }
 
+  // safe: length === 4 and all values are integers 0–255 verified above
   return (
-    octets[0] |
-    (octets[1] << 8) |
-    (octets[2] << 16) |
-    (octets[3] << 24)
+    octets[0]! |
+    (octets[1]! << 8) |
+    (octets[2]! << 16) |
+    (octets[3]! << 24)
   ) >>> 0;
 }
 
@@ -583,31 +589,36 @@ export function decodeSwitchOSBitmask(mask: number): number[] {
 export class SwitchOSClient {
   public readonly docsUrl = "https://help.mikrotik.com/docs/display/SWOS/SwOS";
   private readonly fetchImpl: SwitchOSFetch;
-  private digestChallenge?: DigestChallenge;
+  private digestChallenge: DigestChallenge | undefined;
   private nonceCount = 0;
+  private _schema: SwitchOSApiSchema | undefined;
 
   public constructor(public readonly options: SwitchOSClientOptions) {
     this.fetchImpl = options.fetch ?? fetch;
+    this._schema = options.schema;
   }
 
   public get schema(): SwitchOSApiSchema | undefined {
-    return this.options.schema;
+    return this._schema;
   }
 
-  public set schema(schema: SwitchOSApiSchema | undefined){
-    this.options.schema = schema;
+  public set schema(schema: SwitchOSApiSchema | undefined) {
+    this._schema = schema;
   }
 
   public listEndpoints(): string[] {
-    return Object.keys(this.options.schema?.endpoints ?? {});
+    return Object.keys(this._schema?.endpoints ?? {});
   }
 
   public getEndpointSchema(path: string): SwitchOSEndpointSchema | undefined {
-    return this.options.schema?.endpoints[normalizePath(path)];
+    return this._schema?.endpoints[normalizePath(path)];
   }
 
   public async login(signal?: AbortSignal): Promise<void> {
-    await this.request("/sys.b", { signal, parse: false });
+    await this.request("/sys.b", {
+      ...(signal !== undefined && { signal }),
+      parse: false,
+    });
   }
 
   public async read<T extends SwitchOSWireValue = SwitchOSWireValue>(
@@ -632,8 +643,8 @@ export class SwitchOSClient {
   public async download(path: string, options: Omit<SwitchOSRequestOptions, "method" | "body" | "parse"> = {}): Promise<Uint8Array> {
     const request = this.buildRequest(path, {
       method: "GET",
-      headers: options.headers,
-      signal: options.signal,
+      ...(options.headers !== undefined && { headers: options.headers }),
+      ...(options.signal !== undefined && { signal: options.signal }),
       parse: false,
     });
     const response = await this.fetchWithDigest(request);
@@ -675,7 +686,7 @@ export class SwitchOSClient {
     const init: RequestInit = {
       method,
       headers,
-      signal,
+      ...(signal !== undefined && { signal }),
     };
 
     if (options.body !== undefined) {

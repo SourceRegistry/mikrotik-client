@@ -6,7 +6,7 @@ async function main() {
     username: process.env.MIKROTIK_USERNAME ?? "admin",
     password: process.env.MIKROTIK_PASSWORD ?? "",
     tls: process.env.MIKROTIK_TLS === "true",
-    port: process.env.MIKROTIK_PORT ? Number(process.env.MIKROTIK_PORT) : undefined,
+    ...(process.env.MIKROTIK_PORT ? { port: Number(process.env.MIKROTIK_PORT) } : {}),
   });
 
   try {

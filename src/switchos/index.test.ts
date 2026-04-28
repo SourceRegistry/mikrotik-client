@@ -1,8 +1,8 @@
 import http from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
+import type { SwitchOSHttpError } from "./index";
 import {
   SwitchOSClient,
-  SwitchOSHttpError,
   decodeSwitchOSBitmask,
   decodeSwitchOSHexString,
   decodeSwitchOSIpv4,
@@ -64,6 +64,85 @@ function createServer(
     },
   };
 }
+
+describe("SwitchOS decodeSwitchOSLiteral edge cases", () => {
+  it("parses empty object", () => {
+    expect(decodeSwitchOSLiteral("{}")).toEqual({});
+  });
+
+  it("parses empty array", () => {
+    expect(decodeSwitchOSLiteral("[]")).toEqual([]);
+  });
+
+  it("parses null", () => {
+    expect(decodeSwitchOSLiteral("null")).toBeNull();
+  });
+
+  it("parses true/false", () => {
+    expect(decodeSwitchOSLiteral("true")).toBe(true);
+    expect(decodeSwitchOSLiteral("false")).toBe(false);
+  });
+
+  it("parses negative numbers", () => {
+    expect(decodeSwitchOSLiteral("-42")).toBe(-42);
+  });
+
+  it("parses decimal numbers", () => {
+    expect(decodeSwitchOSLiteral("3.14")).toBeCloseTo(3.14);
+  });
+
+  it("parses exponent numbers", () => {
+    expect(decodeSwitchOSLiteral("1e3")).toBe(1000);
+    expect(decodeSwitchOSLiteral("1e+3")).toBe(1000);
+    expect(decodeSwitchOSLiteral("1e-3")).toBeCloseTo(0.001);
+  });
+
+  it("parses string escape sequences", () => {
+    expect(decodeSwitchOSLiteral("'\\n'")).toBe("\n");
+    expect(decodeSwitchOSLiteral("'\\r'")).toBe("\r");
+    expect(decodeSwitchOSLiteral("'\\t'")).toBe("\t");
+    expect(decodeSwitchOSLiteral("'\\\\'"  )).toBe("\\");
+    expect(decodeSwitchOSLiteral("'\\\"'")).toBe("\"");
+    expect(decodeSwitchOSLiteral("'\\x41'")).toBe("A");
+    expect(decodeSwitchOSLiteral("'\\u0041'")).toBe("A");
+    expect(decodeSwitchOSLiteral("'\\z'")).toBe("z"); // default fallthrough
+  });
+
+  it("parses quoted key", () => {
+    expect(decodeSwitchOSLiteral("{'key':1}")).toEqual({ key: 1 });
+  });
+
+  it("throws on unterminated string", () => {
+    expect(() => decodeSwitchOSLiteral("'unterminated")).toThrow();
+  });
+
+  it("throws on invalid hex escape", () => {
+    expect(() => decodeSwitchOSLiteral("'\\xZZ'")).toThrow(/hex escape/);
+  });
+
+  it("throws on invalid unicode escape", () => {
+    expect(() => decodeSwitchOSLiteral("'\\uZZZZ'")).toThrow(/unicode escape/);
+  });
+});
+
+describe("SwitchOS encodeSwitchOSLiteral edge cases", () => {
+  it("encodes null", () => {
+    expect(encodeSwitchOSLiteral(null)).toBe("null");
+  });
+
+  it("encodes true/false", () => {
+    expect(encodeSwitchOSLiteral(true)).toBe("true");
+    expect(encodeSwitchOSLiteral(false)).toBe("false");
+  });
+
+  it("encodes string", () => {
+    expect(encodeSwitchOSLiteral("hello")).toBe("'hello'");
+  });
+
+  it("encodes nested array", () => {
+    expect(encodeSwitchOSLiteral([1, 2, 3])).toBe("[0x1,0x2,0x3]");
+  });
+});
 
 describe("SwitchOS literal codec", () => {
   it("encodes and decodes object payloads", () => {
@@ -183,5 +262,135 @@ describe("SwitchOS client", () => {
       status: 500,
       body: "boom",
     });
+  });
+
+  it("retries on second 401 with updated nonce", async () => {
+    let requestCount = 0;
+    const nonce2 = "newnoncevalue1234";
+    const server = createServer((request, response, _body, state) => {
+      requestCount++;
+      if (state.authorizedRequests === 1) {
+        // Return 401 again with a new nonce on the second authorized request
+        response.writeHead(401, { "WWW-Authenticate": `Digest realm="${realm}", nonce="${nonce2}", qop="auth", algorithm=MD5` });
+        response.end("stale nonce");
+        return;
+      }
+      response.writeHead(200, { "Content-Type": "text/plain" });
+      response.end("{id:'ok'}");
+    });
+    servers.push(server);
+
+    const client = new SwitchOSClient({
+      baseUrl: await server.listen(),
+      username: "admin",
+      password: "secret",
+    });
+
+    const result = await client.read<{ id: string }>("/sys.b");
+    expect(result).toEqual({ id: "ok" });
+    // 2 authorized requests: first returns stale 401, second returns 200
+    expect(requestCount).toBe(2);
+  });
+
+  it("handles URLSearchParams body", async () => {
+    const calls: Array<RequestInit> = [];
+    const client = new SwitchOSClient({
+      baseUrl: "http://127.0.0.1",
+      fetch: async (_input, init) => {
+        calls.push(init ?? {});
+        return new Response("", { status: 200 });
+      },
+    });
+    const params = new URLSearchParams({ foo: "bar" });
+    await client.request("/test", { method: "POST", body: params });
+    expect(calls[0]?.body).toBeInstanceOf(URLSearchParams);
+  });
+
+  it("handles FormData body", async () => {
+    const calls: Array<RequestInit> = [];
+    const client = new SwitchOSClient({
+      baseUrl: "http://127.0.0.1",
+      fetch: async (_input, init) => {
+        calls.push(init ?? {});
+        return new Response("", { status: 200 });
+      },
+    });
+    const form = new FormData();
+    form.append("key", "value");
+    await client.request("/test", { method: "POST", body: form });
+    expect(calls[0]?.body).toBeInstanceOf(FormData);
+  });
+
+  it("handles ArrayBuffer body", async () => {
+    const calls: Array<RequestInit> = [];
+    const client = new SwitchOSClient({
+      baseUrl: "http://127.0.0.1",
+      fetch: async (_input, init) => {
+        calls.push(init ?? {});
+        return new Response("", { status: 200 });
+      },
+    });
+    const buf = new ArrayBuffer(4);
+    await client.request("/test", { method: "POST", body: buf });
+    expect(calls[0]?.body).toBeInstanceOf(Buffer);
+  });
+
+  it("handles no-credentials 401 → returns response", async () => {
+    const client = new SwitchOSClient({
+      baseUrl: "http://127.0.0.1",
+      fetch: async () => new Response("unauthorized", { status: 401, headers: { "WWW-Authenticate": createDigestHeader() } }),
+    });
+    // No username/password → should not retry
+    await expect(client.read("/sys.b")).rejects.toMatchObject({ status: 401 });
+  });
+
+  it("handles 401 with no parseable WWW-Authenticate → returns response", async () => {
+    let call = 0;
+    const client = new SwitchOSClient({
+      baseUrl: "http://127.0.0.1",
+      username: "admin",
+      password: "secret",
+      fetch: async () => {
+        call++;
+        // No WWW-Authenticate header → challenge parsing returns undefined → returns as-is
+        return new Response("no-challenge", { status: 401 });
+      },
+    });
+    await expect(client.read("/sys.b")).rejects.toMatchObject({ status: 401 });
+    expect(call).toBe(1);
+  });
+
+  it("downloads binary data", async () => {
+    const data = new Uint8Array([1, 2, 3, 4]);
+    const client = new SwitchOSClient({
+      baseUrl: "http://127.0.0.1",
+      fetch: async () => new Response(data, { status: 200 }),
+    });
+    const result = await client.download("/backup.bin");
+    expect(result).toBeInstanceOf(Uint8Array);
+    expect(Array.from(result)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("download throws SwitchOSHttpError on non-200", async () => {
+    const client = new SwitchOSClient({
+      baseUrl: "http://127.0.0.1",
+      fetch: async () => new Response("not found", { status: 404 }),
+    });
+    await expect(client.download("/missing.bin")).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("listEndpoints returns keys from schema", () => {
+    const client = new SwitchOSClient({ baseUrl: "http://127.0.0.1" });
+    expect(client.listEndpoints()).toEqual([]);
+    client.schema = { endpoints: { "/sys.b": {} as SwitchOSSectionSchema } };
+    expect(client.listEndpoints()).toContain("/sys.b");
+  });
+
+  it("getEndpointSchema returns matching endpoint", () => {
+    const client = new SwitchOSClient({ baseUrl: "http://127.0.0.1" });
+    const schema: SwitchOSSectionSchema = { tab_id: "sys", tab_title: "System", title: "System", url: "/sys.b", shape: "object", list: false, read_only: false, refresh_ms: null, controls: [] };
+    client.schema = { endpoints: { "/sys.b": schema } };
+    expect(client.getEndpointSchema("/sys.b")).toBe(schema);
+    expect(client.getEndpointSchema("/missing")).toBeUndefined();
   });
 });

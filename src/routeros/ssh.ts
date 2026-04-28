@@ -185,8 +185,8 @@ export class RouterOSSshClient {
     options: RouterOSSshCommandOptions = {}
   ): Promise<RouterOSSshCommandResult> {
     const remoteCommand = formatRouterOSSshCommand(command, {
-      words: options.words,
-      attributes: options.attributes,
+      ...(options.words !== undefined && { words: options.words }),
+      ...(options.attributes !== undefined && { attributes: options.attributes }),
     });
     const materializedIdentity = await materializeIdentityFile(this.options.identityFile);
     const args = createSshArgs(
@@ -199,7 +199,7 @@ export class RouterOSSshClient {
       ((nextCommand, nextArgs, nextOptions) =>
         spawn(nextCommand, nextArgs, nextOptions) as RouterOSSshProcess);
     const child = spawnProcess(this.options.sshPath ?? "ssh", args, {
-      signal: options.signal,
+      ...(options.signal !== undefined && { signal: options.signal }),
     });
     const deferred: Deferred<RouterOSSshCommandResult> =
       createDeferred<RouterOSSshCommandResult>();

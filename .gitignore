@@ -7,4 +7,8 @@ node_modules
 *.env
 !example.env
 SKILL.md
+.claude
+CLAUDE.md
 /old/
+coverage
+.DS_Store

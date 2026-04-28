@@ -26,16 +26,13 @@ function directCandidateFromEnv(): DiscoveredNeighbor | undefined {
   const portText = process.env.MIKROTIK_PORT;
   const port = portText ? Number.parseInt(portText, 10) : undefined;
   const tls = process.env.MIKROTIK_TLS === "true";
+  const identity = process.env.MIKROTIK_IDENTITY;
 
   return {
     source: "mndp",
     id: `direct|${host}|${port ?? (tls ? 8729 : 8728)}`,
-    identity: process.env.MIKROTIK_IDENTITY,
     address: host,
-    version: undefined,
-    hardware: undefined,
-    interfaceName: undefined,
-    macAddress: undefined,
+    ...(identity !== undefined ? { identity } : {}),
     platform: tls ? "routeros-api-ssl" : "routeros-api",
     raw: {
       version: 0,
@@ -83,11 +80,11 @@ async function main() {
 
   const client = new RouterOSClient({
     host: candidate.address,
-    port: process.env.MIKROTIK_PORT ? Number.parseInt(process.env.MIKROTIK_PORT, 10) : undefined,
     tls: process.env.MIKROTIK_TLS === "true",
     username,
     password,
     timeoutMs,
+    ...(process.env.MIKROTIK_PORT ? { port: Number.parseInt(process.env.MIKROTIK_PORT, 10) } : {}),
   });
 
   try {

@@ -26,11 +26,42 @@ jobs:
           node-version: 24
           registry-url: "https://registry.npmjs.org/"
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+      - name: Lint and typecheck
+        run: npm run lint
+      - name: Check formatting
+        run: npm run format:check
       - name: Run tests
         run: npm test
       - name: Build the package
         run: npm run build
+      - name: Typecheck examples
+        run: npm run typecheck:examples
+
+  test-integration:
+    name: Integration tests (CHR ${{ matrix.chr-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        chr-version: ["7.14", "7.15", "latest"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm ci
+      - name: Pull CHR image
+        run: docker pull mikrotik/chr:${{ matrix.chr-version }}
+        continue-on-error: true
+      - name: Run integration tests
+        run: npm test -- test/integration
+        env:
+          MIKROTIK_CHR_IMAGE: mikrotik/chr:${{ matrix.chr-version }}
+        timeout-minutes: 10
 
   release:
     name: Release

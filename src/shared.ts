@@ -65,7 +65,8 @@ export function decodeLength(
         return undefined;
     }
 
-    const first = buffer[offset];
+    // safe: offset < buffer.length verified by the guard above
+    const first = buffer[offset]!;
 
     if (first < 0x80) {
         return {length: first, bytesRead: 1};
@@ -73,14 +74,14 @@ export function decodeLength(
 
     if (first < 0xc0) {
         if (offset + 2 > buffer.length) return undefined;
-        const value = ((first << 8) | buffer[offset + 1]) & 0x3fff;
+        const value = ((first << 8) | buffer[offset + 1]!) & 0x3fff;
         return {length: value, bytesRead: 2};
     }
 
     if (first < 0xe0) {
         if (offset + 3 > buffer.length) return undefined;
         const value =
-            ((first << 16) | (buffer[offset + 1] << 8) | buffer[offset + 2]) &
+            ((first << 16) | (buffer[offset + 1]! << 8) | buffer[offset + 2]!) &
             0x1fffff;
         return {length: value, bytesRead: 3};
     }
@@ -89,9 +90,9 @@ export function decodeLength(
         if (offset + 4 > buffer.length) return undefined;
         const value =
             ((first << 24) |
-                (buffer[offset + 1] << 16) |
-                (buffer[offset + 2] << 8) |
-                buffer[offset + 3]) >>>
+                (buffer[offset + 1]! << 16) |
+                (buffer[offset + 2]! << 8) |
+                buffer[offset + 3]!) >>>
             0;
         return {length: value & 0x0fffffff, bytesRead: 4};
     }
@@ -99,10 +100,10 @@ export function decodeLength(
     if (first === 0xf0) {
         if (offset + 5 > buffer.length) return undefined;
         const value =
-            ((buffer[offset + 1] << 24) |
-                (buffer[offset + 2] << 16) |
-                (buffer[offset + 3] << 8) |
-                buffer[offset + 4]) >>>
+            ((buffer[offset + 1]! << 24) |
+                (buffer[offset + 2]! << 16) |
+                (buffer[offset + 3]! << 8) |
+                buffer[offset + 4]!) >>>
             0;
         return {length: value, bytesRead: 5};
     }

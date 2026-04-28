@@ -188,23 +188,27 @@ export function toMNDPAdvertisement(
 
   const first = (type: number): MNDPTlvValue | undefined => tlvs.get(type)?.[0]?.value;
 
+  const macAddress = typeof first(MNDP_TLV_ADDRESS) === "string" ? (first(MNDP_TLV_ADDRESS) as string) : undefined;
+  const identity = typeof first(MNDP_TLV_IDENTITY) === "string" ? (first(MNDP_TLV_IDENTITY) as string) : undefined;
+  const versionString = typeof first(MNDP_TLV_VERSION) === "string" ? (first(MNDP_TLV_VERSION) as string) : undefined;
+  const platform = typeof first(MNDP_TLV_PLATFORM) === "string" ? (first(MNDP_TLV_PLATFORM) as string) : undefined;
+  const uptimeSeconds = typeof first(MNDP_TLV_TIMESTAMP) === "number" ? (first(MNDP_TLV_TIMESTAMP) as number) : undefined;
+  const softId = typeof first(MNDP_TLV_SOFT_ID) === "string" ? (first(MNDP_TLV_SOFT_ID) as string) : undefined;
+  const hardware = typeof first(MNDP_TLV_HARDWARE) === "string" ? (first(MNDP_TLV_HARDWARE) as string) : undefined;
+  const interfaceName = typeof first(MNDP_TLV_INTERFACE_NAME) === "string" ? (first(MNDP_TLV_INTERFACE_NAME) as string) : undefined;
+
   return {
     version: packet.version,
     ttl: packet.ttl,
     checksum: packet.checksum,
-    macAddress: typeof first(MNDP_TLV_ADDRESS) === "string" ? (first(MNDP_TLV_ADDRESS) as string) : undefined,
-    identity: typeof first(MNDP_TLV_IDENTITY) === "string" ? (first(MNDP_TLV_IDENTITY) as string) : undefined,
-    versionString:
-      typeof first(MNDP_TLV_VERSION) === "string" ? (first(MNDP_TLV_VERSION) as string) : undefined,
-    platform: typeof first(MNDP_TLV_PLATFORM) === "string" ? (first(MNDP_TLV_PLATFORM) as string) : undefined,
-    uptimeSeconds:
-      typeof first(MNDP_TLV_TIMESTAMP) === "number" ? (first(MNDP_TLV_TIMESTAMP) as number) : undefined,
-    softId: typeof first(MNDP_TLV_SOFT_ID) === "string" ? (first(MNDP_TLV_SOFT_ID) as string) : undefined,
-    hardware: typeof first(MNDP_TLV_HARDWARE) === "string" ? (first(MNDP_TLV_HARDWARE) as string) : undefined,
-    interfaceName:
-      typeof first(MNDP_TLV_INTERFACE_NAME) === "string"
-        ? (first(MNDP_TLV_INTERFACE_NAME) as string)
-        : undefined,
+    ...(macAddress !== undefined && { macAddress }),
+    ...(identity !== undefined && { identity }),
+    ...(versionString !== undefined && { versionString }),
+    ...(platform !== undefined && { platform }),
+    ...(uptimeSeconds !== undefined && { uptimeSeconds }),
+    ...(softId !== undefined && { softId }),
+    ...(hardware !== undefined && { hardware }),
+    ...(interfaceName !== undefined && { interfaceName }),
     remoteAddress: remote.address,
     remotePort: remote.port,
     remoteFamily: remote.family,
@@ -231,7 +235,7 @@ export class MNDPListener
   private readonly waiters: Array<ReturnType<typeof createDeferred<IteratorResult<MNDPAdvertisement>>>> = [];
   private closed = false;
   private closeError?: unknown;
-  private requestTimer?: NodeJS.Timeout;
+  private requestTimer: NodeJS.Timeout | undefined;
 
   public constructor(public readonly socket: Socket) {
     super();

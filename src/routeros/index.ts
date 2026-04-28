@@ -8,6 +8,7 @@ import {
   withTimeout,
 } from "../shared";
 import { createRouterOSHelpers, type RouterOSHelpers } from "./helpers";
+import type { DeviceTransport } from "./transport";
 
 export type RouterOSPrimitive =
   | string
@@ -59,7 +60,7 @@ export type RouterOSClientOptions = {
   host: string;
   username?: string;
   password?: string;
-  port?: number;
+  port?: number | undefined;
   tls?: boolean;
   timeoutMs?: number;
   keepAlive?: boolean;
@@ -151,7 +152,9 @@ function parseReply(words: string[]): RouterOSReply {
     throw new Error("Received empty RouterOS sentence.");
   }
 
-  const [head, ...tail] = words;
+  // safe: words.length > 0 verified by the guard above
+  const head = words[0]!;
+  const tail = words.slice(1);
   const type = head.startsWith("!") ? head.slice(1) : head;
   if (
     type !== "re" &&
@@ -185,7 +188,7 @@ function parseReply(words: string[]): RouterOSReply {
 
   return {
     type,
-    tag: apiAttributes.tag,
+    ...(apiAttributes.tag !== undefined && { tag: apiAttributes.tag }),
     attributes,
     apiAttributes,
     raw: words,
@@ -328,11 +331,11 @@ export class RouterOSStream extends EventEmitter implements AsyncIterable<Router
   }
 }
 
-export class RouterOSClient {
-  private socket?: net.Socket | tls.TLSSocket;
+export class RouterOSClient implements DeviceTransport {
+  private socket: net.Socket | tls.TLSSocket | undefined;
   private readonly decoder = new SentenceDecoder();
   private readonly pending = new Map<string, PendingRequest>();
-  private connectPromise?: Promise<this>;
+  private connectPromise: Promise<this> | undefined;
   private nextTagId = 1;
 
   public readonly api: RouterOSApiBranch;
@@ -356,6 +359,7 @@ export class RouterOSClient {
     this.wireguard = helpers.wireguard;
     this.ppp = helpers.ppp;
     this.routing = helpers.routing;
+    if (!this.options.port) this.options.port = this.options.tls? 8729: 8729
   }
 
   async connect(): Promise<this> {
@@ -436,18 +440,18 @@ export class RouterOSClient {
         const timer =
           this.options.timeoutMs && this.options.timeoutMs > 0
             ? setTimeout(() => {
-                if (settled) {
-                  return;
-                }
-                settled = true;
-                cleanup();
-                socket.destroy();
-                reject(
-                  new Error(
-                    `RouterOS connection timed out to ${this.options.host}:${this.options.port ?? (this.options.tls ? 8729 : 8728)}`
-                  )
-                );
-              }, this.options.timeoutMs)
+              if (settled) {
+                return;
+              }
+              settled = true;
+              cleanup();
+              socket.destroy();
+              reject(
+                new Error(
+                  `RouterOS connection timed out to ${this.options.host}:${this.options.port ?? (this.options.tls ? 8729 : 8728)}`
+                )
+              );
+            }, this.options.timeoutMs)
             : undefined;
 
         socket.once(connectEvent, onReady);
@@ -494,7 +498,7 @@ export class RouterOSClient {
         name: this.options.username,
         password: this.options.password ?? "",
       },
-      timeoutMs: this.options.timeoutMs,
+      ...(this.options.timeoutMs !== undefined && { timeoutMs: this.options.timeoutMs }),
     });
 
     return this;
@@ -569,7 +573,7 @@ export class RouterOSClient {
     this.pending.set(tag, {
       kind: "listen",
       stream,
-      onReply: options.onReply,
+      ...(options.onReply !== undefined && { onReply: options.onReply }),
     });
 
     const cleanupAbort = this.bindAbort(tag, options, async () => {
@@ -599,7 +603,7 @@ export class RouterOSClient {
     try {
       await this.execute("/cancel", {
         attributes: { tag },
-        timeoutMs: this.options.timeoutMs,
+        ...(this.options.timeoutMs !== undefined && { timeoutMs: this.options.timeoutMs }),
       });
     } finally {
       const pending = this.pending.get(tag);
@@ -713,8 +717,8 @@ export class RouterOSClient {
     pending.deferred.resolve({
       tag,
       records: pending.records,
-      done: reply.type === "done" ? reply : undefined,
-      empty: reply.type === "empty" ? reply : undefined,
+      ...(reply.type === "done" && { done: reply }),
+      ...(reply.type === "empty" && { empty: reply }),
       traps: pending.traps,
     });
   }
@@ -735,3 +739,6 @@ export class RouterOSClient {
 
 export * from "./helpers";
 export * from "./ssh";
+export * from "./rest";
+export * from "./typed-stream";
+export type { DeviceTransport } from "./transport";

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { encodeSentence, SentenceDecoder } from "../shared";
 import { RouterOSClient, RouterOSTrapError } from "./index";
 
-function parseSentenceWord(word: string): { key: string; value: string } | undefined {
+function _parseSentenceWord(word: string): { key: string; value: string } | undefined {
   if (!word.startsWith("=") && !word.startsWith(".")) return undefined;
   const index = word.indexOf("=", 1);
   if (index === -1) {
@@ -895,6 +895,193 @@ describe("RouterOSClient", () => {
     expect(ipv6Neighbors[0]?.interface).toBe("sfp-sfpplus1");
     expect(wifiClients[0]?.interface).toBe("wifi1");
 
+    await client.close();
+  });
+
+  it("calls onReply when present on a listen command", async () => {
+    const server = createMockServer();
+    servers.add(server);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("server failed");
+
+    const client = new RouterOSClient({ host: "127.0.0.1", port: address.port, username: "admin", password: "" });
+
+    const onReplyCalls: unknown[] = [];
+    const stream = await client.api.interface.listen({ onReply: (reply) => { onReplyCalls.push(reply); } });
+    await stream.nextReply(500);
+    expect(onReplyCalls.length).toBeGreaterThan(0);
+    await stream.cancel();
+    await client.close();
+  });
+
+  it("ignores replies with unknown tags (no pending match)", async () => {
+    // Use a simple server that sends an !re with a random tag nobody knows
+    const server = net.createServer((socket) => {
+      const decoder = new SentenceDecoder();
+      socket.on("data", (chunk) => {
+        for (const sentence of decoder.push(chunk)) {
+          const command = sentence[0];
+          const tag = getSentenceValue(sentence, ".", "tag");
+          if (command === "/login") {
+            // Send a reply for an unknown tag, then the real done
+            socket.write(encodeSentence(["!re", "=x=1", ".tag=unknown-tag-99"]));
+            socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          }
+        }
+      });
+    });
+    servers.add(server);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("server failed");
+
+    const client = new RouterOSClient({ host: "127.0.0.1", port: address.port, username: "admin", password: "" });
+    // Login should complete even with the spurious unknown-tag reply
+    await expect(client.execute("/login", {})).resolves.toBeDefined();
+    await client.close();
+  });
+
+  it("rejectAll rejects pending execute on connection drop", async () => {
+    const server = net.createServer((socket) => {
+      const decoder = new SentenceDecoder();
+      socket.on("data", (chunk) => {
+        for (const sentence of decoder.push(chunk)) {
+          const command = sentence[0];
+          const tag = getSentenceValue(sentence, ".", "tag");
+          if (command === "/login") {
+            socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          }
+          // All other commands: drop the connection
+          if (command !== "/login") {
+            socket.destroy();
+          }
+        }
+      });
+    });
+    servers.add(server);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("server failed");
+
+    const client = new RouterOSClient({ host: "127.0.0.1", port: address.port, username: "admin", password: "" });
+    // execute will be pending when server drops the connection
+    await expect(client.execute("/interface/print", {})).rejects.toThrow();
+    await client.close();
+  });
+
+  it("rejectAll finishes pending listen stream on connection drop", async () => {
+    const server = net.createServer((socket) => {
+      const decoder = new SentenceDecoder();
+      socket.on("data", (chunk) => {
+        for (const sentence of decoder.push(chunk)) {
+          const command = sentence[0];
+          const tag = getSentenceValue(sentence, ".", "tag");
+          if (command === "/login") {
+            socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          }
+          if (command !== "/login") {
+            socket.write(encodeSentence(["!re", "=name=ether1", `.tag=${tag}`]));
+            setTimeout(() => socket.destroy(), 50);
+          }
+        }
+      });
+    });
+    servers.add(server);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("server failed");
+
+    const client = new RouterOSClient({ host: "127.0.0.1", port: address.port, username: "admin", password: "" });
+    const stream = await client.api.interface.listen();
+    await stream.nextReply(500);
+    const closeReason = await new Promise<unknown>((resolve) => stream.once("close", resolve));
+    expect(closeReason).toBeDefined();
+    await client.close();
+  });
+
+  it("abort signal cancels pending execute", async () => {
+    const server = net.createServer((socket) => {
+      const decoder = new SentenceDecoder();
+      socket.on("data", (chunk) => {
+        for (const sentence of decoder.push(chunk)) {
+          const command = sentence[0];
+          const tag = getSentenceValue(sentence, ".", "tag");
+          if (command === "/login") {
+            socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          }
+          // Other commands: intentionally hang (no response)
+        }
+      });
+    });
+    servers.add(server);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("server failed");
+
+    const client = new RouterOSClient({ host: "127.0.0.1", port: address.port, username: "admin", password: "" });
+    const controller = new AbortController();
+    const p = client.execute("/interface/print", { signal: controller.signal });
+    // Abort after small delay to let command get registered
+    setTimeout(() => controller.abort(), 20);
+    await expect(p).rejects.toThrow();
+    await client.close();
+  });
+
+  it("abort signal cancels pending listen", async () => {
+    const server = net.createServer((socket) => {
+      const decoder = new SentenceDecoder();
+      socket.on("data", (chunk) => {
+        for (const sentence of decoder.push(chunk)) {
+          const command = sentence[0];
+          const tag = getSentenceValue(sentence, ".", "tag");
+          if (command === "/login") {
+            socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          }
+          if (command === "/cancel") {
+            socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          }
+        }
+      });
+    });
+    servers.add(server);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("server failed");
+
+    const client = new RouterOSClient({ host: "127.0.0.1", port: address.port, username: "admin", password: "" });
+    const controller = new AbortController();
+    const stream = await client.listen("/interface/listen", { signal: controller.signal });
+    controller.abort();
+    const result = await stream.nextReply(500).catch(() => "aborted");
+    expect(result === undefined || result === "aborted").toBe(true);
+    // Wait for any async cancel operations to complete before closing
+    await new Promise(resolve => setTimeout(resolve, 50));
+    await client.close();
+  });
+
+  it("pre-aborted signal rejects execute immediately", async () => {
+    const server = net.createServer((socket) => {
+      const decoder = new SentenceDecoder();
+      socket.on("data", (chunk) => {
+        for (const sentence of decoder.push(chunk)) {
+          const command = sentence[0];
+          const tag = getSentenceValue(sentence, ".", "tag");
+          if (command === "/login") {
+            socket.write(encodeSentence(["!done", `.tag=${tag}`]));
+          }
+        }
+      });
+    });
+    servers.add(server);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("server failed");
+
+    const client = new RouterOSClient({ host: "127.0.0.1", port: address.port, username: "admin", password: "" });
+    const controller = new AbortController();
+    controller.abort(); // pre-abort
+    await expect(client.execute("/interface/print", { signal: controller.signal })).rejects.toThrow();
     await client.close();
   });
 });

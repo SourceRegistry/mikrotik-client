@@ -1,0 +1,58 @@
+# Integration tests against MikroTik CHR Docker images
+# Runs on PR and pushes to main, also manually triggerable via workflow_dispatch
+
+name: Integration Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  MIKROTIK_CHR_IMAGE: "mikrotik/chr"
+  RUN_CHR_INTEGRATION: "1"
+
+jobs:
+  integration:
+    strategy:
+      matrix:
+        include:
+          - chr-tag: "latest"
+            label: "CHR latest"
+          - chr-tag: "7.16"
+            label: "CHR 7.16"
+          - chr-tag: "7.15"
+            label: "CHR 7.15"
+      fail-fast: false
+
+    runs-on: ubuntu-latest
+   Timeout-minutes: 15
+    name: ${{ matrix.label }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Pull CHR image
+        run: docker pull ${{ env.MIKROTIK_CHR_IMAGE }}:${{ matrix.chr-tag }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Integration tests
+        run: |
+          npx vitest run --config vitest.config.ts test/integration/
+        env:
+          MIKROTIK_CHR_IMAGE: "${{ env.MIKROTIK_CHR_IMAGE }}:${{ matrix.chr-tag }}"

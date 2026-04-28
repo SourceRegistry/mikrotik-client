@@ -8,7 +8,7 @@
   "sideEffects": false,
   "type": "module",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "exports": {
     ".": {
@@ -25,6 +25,36 @@
       "types": "./dist/switchos/index.d.ts",
       "import": "./dist/switchos/index.js",
       "require": "./dist/switchos/index.cjs"
+    },
+    "./discovery": {
+      "types": "./dist/discovery/index.d.ts",
+      "import": "./dist/discovery/index.js",
+      "require": "./dist/discovery/index.cjs"
+    },
+    "./ir": {
+      "types": "./dist/ir/index.d.ts",
+      "import": "./dist/ir/index.js",
+      "require": "./dist/ir/index.cjs"
+    },
+    "./safety": {
+      "types": "./dist/safety/index.d.ts",
+      "import": "./dist/safety/index.js",
+      "require": "./dist/safety/index.cjs"
+    },
+    "./crypto": {
+      "types": "./dist/crypto/index.d.ts",
+      "import": "./dist/crypto/index.js",
+      "require": "./dist/crypto/index.cjs"
+    },
+    "./mac-telnet": {
+      "types": "./dist/mac-telnet/index.d.ts",
+      "import": "./dist/mac-telnet/index.js",
+      "require": "./dist/mac-telnet/index.cjs"
+    },
+    "./netinstall": {
+      "types": "./dist/netinstall/index.d.ts",
+      "import": "./dist/netinstall/index.js",
+      "require": "./dist/netinstall/index.cjs"
     }
   },
   "files": [
@@ -35,7 +65,10 @@
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "lint": "tsc --noEmit",
+    "lint": "eslint src && tsc --noEmit",
+    "lint:fix": "eslint src --fix && prettier --write src",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src",
     "typecheck:examples": "tsc --noEmit -p tsconfig.examples.json",
     "docs:build": "typedoc src/index.ts --out docs --name \"mikrotik-client\" --theme default --excludePrivate --excludeProtected",
     "example:basic": "tsx examples/basic.ts",
@@ -43,7 +76,20 @@
     "example:listen": "tsx examples/listen.ts",
     "example:network": "tsx examples/network.ts",
     "example:routeros-bgp-wireguard": "tsx examples/routeros-bgp-wireguard.ts",
-    "example:discover-neighbor": "tsx examples/discover-neighbor.ts"
+    "example:discover-neighbor": "tsx examples/discover-neighbor.ts",
+    "example:rest-client": "tsx examples/rest-client.ts",
+    "example:ssh-client": "tsx examples/ssh-client.ts",
+    "example:switchos": "tsx examples/switchos.ts",
+    "example:ir-parse-render-diff": "tsx examples/ir-parse-render-diff.ts",
+    "example:safety-commit-confirm": "tsx examples/safety-commit-confirm.ts",
+    "example:crypto-csr-certs": "tsx examples/crypto-csr-certs.ts",
+    "example:connection-pool": "tsx examples/connection-pool.ts",
+    "example:typed-stream": "tsx examples/typed-stream.ts",
+    "example:errors": "tsx examples/errors.ts",
+    "example:discover-neighbor-mndp": "tsx examples/mndp-listener.ts",
+    "example:capsman": "tsx examples/capsman.ts",
+    "example:mac-telnet": "tsx examples/mac-telnet.ts",
+    "example:netinstall": "tsx examples/netinstall.ts"
   },
   "repository": {
     "type": "git",
@@ -68,15 +114,24 @@
     "access": "public"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/npm": "^13.1.5",
     "@semantic-release/release-notes-generator": "^14.0.3",
     "@sourceregistry/semantic-release-jsr": "^1.0.1",
-    "@types/node": "^25.3.3",
+    "@types/node": "^25.6.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.0",
+    "@typescript-eslint/parser": "^8.59.0",
     "@vitest/coverage-v8": "^4.0.18",
     "@vitest/ui": "^4.0.18",
+    "eslint": "^10.2.1",
+    "eslint-plugin-import-x": "^4.16.2",
+    "eslint-plugin-n": "^17.24.0",
+    "eslint-plugin-unicorn": "^64.0.0",
+    "prettier": "^3.8.3",
     "tsx": "^4.20.6",
     "typedoc": "^0.28.17",
     "typescript": "^5.9.3",
