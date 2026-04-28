@@ -21,10 +21,8 @@ jobs:
         include:
           - chr-tag: "latest"
             label: "CHR latest"
-          - chr-tag: "7.16"
-            label: "CHR 7.16"
-          - chr-tag: "7.15"
-            label: "CHR 7.15"
+          - chr-tag: "7.22"
+            label: "CHR 7.22"
       fail-fast: false
 
     runs-on: ubuntu-latest
