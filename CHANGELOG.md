@@ -1,3 +1,10 @@
+# [1.0.0-alpha.6](https://github.com/SourceRegistry/mikrotik-client/compare/v1.0.0-alpha.5...v1.0.0-alpha.6) (2026-04-28)
+
+
+### Bug Fixes
+
+* **ci:** update CHR image tags to available versions (7.22, latest) ([88ddeb0](https://github.com/SourceRegistry/mikrotik-client/commit/88ddeb00afa2c6a9e9f1a1144a0f94928ce462e7))
+
 # [1.0.0-alpha.5](https://github.com/SourceRegistry/mikrotik-client/compare/v1.0.0-alpha.4...v1.0.0-alpha.5) (2026-04-28)
 
 
