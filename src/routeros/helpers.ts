@@ -9,6 +9,8 @@ import type { DeviceTransport } from "./transport";
 import { parseBool, parseInteger } from "../utils/codecs";
 import { createCapsManHelpers } from "./capsman";
 import type { CapsManHelpers } from "./capsman";
+import { createWatch } from "./typed-stream";
+import type { RouterOSWatchOptions, TypedStream } from "./typed-stream";
 
 export type RouterOSPrintOptions = {
   proplist?: readonly string[];
@@ -338,6 +340,188 @@ export type RouterOSLteMonitor = {
   roaming?: boolean;
 };
 
+// ─── String-literal enums + runtime const arrays ──────────────────────────────
+// Per CLAUDE.md: "Enums as string-literal unions, not TS enum. Include a
+// runtime const array for iteration."
+
+/** Known `type` values returned by `/interface` print. */
+export type RouterOSInterfaceKind =
+  | "ether" | "bridge" | "veth" | "vlan" | "bonding" | "wireguard"
+  | "wireguard-peer" | "pppoe-client" | "pppoe-server" | "l2tp-client"
+  | "l2tp-server" | "pptp-client" | "pptp-server" | "ppp-to-ether"
+  | "ovs-patch" | "ovs" | "simple-switch" | "bridge-vlan"
+  | "dot1x-ap-client" | "dot1x-client" | "dot1x-server" | "dot1x"
+  | "gre" | "gre6" | "ipip" | "ipoe" | "ipsec" | "iwarp"
+  | "bridge-ppp-client" | "bridge-ppp-server" | "pppoe-to-ether-client"
+  | "pppoe-to-ether-server" | "pptp-to-ether-client" | "pptp-to-ether-server"
+  | "l2tp-to-ether-client" | "l2tp-to-ether-server"
+  | "ovs-patch@ovs" | "ovs-system@ovs" | "ovs-integrationbr@ovs"
+  | "wireless" | "wifi" | "wifi-wwdn" | "wireless-wds" | "wifi-vap"
+  | "wifi-wwdn-vap" | "wifi-loading" | "wlan-sae-loader"
+  | "uftp-client" | "uftp-server"
+  | "sstpc-client" | "sstpc-server"
+  | "statistics" | "bgp-filter" | "vrrp"
+  | "ovs-system" | "ovs-patch" | "ovs-integrationbr"
+  | "ng-ether" | "ng-ether-vlan" | "ng-ring" | "ng-ring-bridge"
+  | "ng-splitter" | "ng-splitter-bridge" | "ng-splitter-router"
+  | "sfp+10g" | "sff-10g" | "sff+10g" | "sfp+10g-bridge"
+  | "sff-10g-bridge" | "sff+10g-bridge"
+  | "contiki" | "tap" | "lte" | "modem"
+  | "pim-tunnel" | "pim-tunnel6"
+  | "vrf"
+  | "user-manager"
+  | "wireless-wds" | "wlan-sae-loader"
+  | "capi" | "capi/channel" | "isl" | "ppp-client" | "sppcie"
+  | "slarc" | "slbrc" | "slc" | "slr" | "vti" | "vti6"
+  | "ijp" | "ijp6" | "pppc" | "iijp" | "iijp6"
+  | "l2tp-vpnc" | "pptp-vpnc" | "pptp-vpn6c" | "sstp-vpnc"
+  | "pppoe-vpnc" | "sstpc"
+  | "wwan" | "wwan/ppp"
+  | "bgp" | "bgp6";
+
+/** Runtime const array for RouterOSInterfaceKind iteration. */
+export const INTERFACE_KINDS: readonly RouterOSInterfaceKind[] = [
+  "ether", "bridge", "veth", "vlan", "bonding", "wireguard",
+  "wireguard-peer", "pppoe-client", "pppoe-server", "l2tp-client",
+  "l2tp-server", "pptp-client", "pptp-server", "ppp-to-ether",
+  "ovs-patch", "ovs", "simple-switch", "bridge-vlan",
+  "dot1x-ap-client", "dot1x-client", "dot1x-server", "dot1x",
+  "gre", "gre6", "ipip", "ipoe", "ipsec", "iwarp",
+  "bridge-ppp-client", "bridge-ppp-server", "pppoe-to-ether-client",
+  "pppoe-to-ether-server", "pptp-to-ether-client", "pptp-to-ether-server",
+  "l2tp-to-ether-client", "l2tp-to-ether-server",
+  "wireless", "wifi", "wifi-wwdn", "wireless-wds", "wifi-vap",
+  "wifi-wwdn-vap", "wifi-loading", "wlan-sae-loader",
+  "uftp-client", "uftp-server",
+  "sstpc-client", "sstpc-server",
+  "statistics", "bgp-filter", "vrrp",
+  "ng-ether", "ng-ether-vlan", "ng-ring", "ng-ring-bridge",
+  "ng-splitter", "ng-splitter-bridge", "ng-splitter-router",
+  "sfp+10g", "sff-10g", "sff+10g", "sfp+10g-bridge",
+  "sff-10g-bridge", "sff+10g-bridge",
+  "contiki", "tap", "lte", "modem",
+  "pim-tunnel", "pim-tunnel6",
+  "vrf", "user-manager",
+  "wireless-wds", "wlan-sae-loader",
+  "capi", "capi/channel", "isl", "ppp-client", "sppcie",
+  "slarc", "slbrc", "slc", "slr", "vti", "vti6",
+  "ijp", "ijp6", "pppc", "iijp", "iijp6",
+  "l2tp-vpnc", "pptp-vpnc", "pptp-vpn6c", "sstp-vpnc",
+  "pppoe-vpnc", "sstpc",
+  "wwan", "wwan/ppp",
+  "bgp", "bgp6",
+];
+
+/** Known `kind` values from `/certificate` print. */
+export type RouterOSCertsKind =
+  | "imported" | "rsasign" | "ecsign" | "ed25519sign" | "unknown";
+
+/** Runtime const array for RouterOSCertsKind iteration. */
+export const CERTS_KINDS: readonly RouterOSCertsKind[] = [
+  "imported", "rsasign", "ecsign", "ed25519sign", "unknown",
+];
+
+/** Known `chain` values for `/ip/firewall/filter`. */
+export type FirewallFilterChain =
+  | "forward" | "input" | "output";
+
+/** Runtime const array for FirewallFilterChain iteration. */
+export const FIREWALL_FILTER_CHAINS: readonly FirewallFilterChain[] = [
+  "forward", "input", "output",
+];
+
+/** Known `action` values for `/ip/firewall/filter`. */
+export type FirewallFilterAction =
+  | "accept" | "drop" | "reject" | "add-src-to-address-list"
+  | "add-dst-to-address-list" | "return" | "jump" | "log" | "chain"
+  | "passthru" | "src-nat" | "dst-nat" | "redirect" | "mongrel"
+  | "snort" | "fasttrack-connection" | "sample" | "accept-with-pool"
+  | "reset-and-repeat";
+
+/** Runtime const array for FirewallFilterAction iteration. */
+export const FIREWALL_FILTER_ACTIONS: readonly FirewallFilterAction[] = [
+  "accept", "drop", "reject", "add-src-to-address-list",
+  "add-dst-to-address-list", "return", "jump", "log", "chain",
+  "passthru", "sample", "src-nat", "dst-nat", "redirect",
+];
+
+// ─── Discriminated DTO types ──────────────────────────────────────────────────
+// Interface: discriminated by `type` (kind) ────────────────────────────────────
+
+/**
+ * A typed RouterOS interface with `kind: "known"` when `type` matches a known
+ * {@link RouterOSInterfaceKind}, or `kind: "unknown"` for unrecognised types.
+ *
+ * @example
+ * ```ts
+ * const iface = parseInterfaceDiscriminated(raw);
+ * if (iface.kind === "known" && iface.type === "ether") {
+ *   // Type-safe: we know it's an ether interface
+ * }
+ * ```
+ */
+export type RouterOSInterfaceKnown = RouterOSInterface & {
+  kind: "known";
+  type: RouterOSInterfaceKind;
+};
+
+export type RouterOSInterfaceUnknown = RouterOSInterface & {
+  kind: "unknown";
+  type?: string;
+};
+
+export type RouterOSInterfaceDiscriminated = RouterOSInterfaceKnown | RouterOSInterfaceUnknown;
+
+// FirewallRule: discriminated by `table` (filter|nat|mangle|raw) ──────────────
+
+/** Base properties shared across all firewall rule tables. */
+export type RouterOSFirewallRuleBase = {
+  ".id"?: string;
+  disabled?: boolean;
+  comment?: string;
+  protocol?: string;
+  "src-address"?: string;
+  "dst-address"?: string;
+};
+
+/** Filter table rule — default table, no `table` field or `table: "filter"`. */
+export type RouterOSFirewallFilterRuleTyped = RouterOSFirewallRuleBase & {
+  table?: undefined | "filter";
+  chain?: FirewallFilterChain;
+  action?: FirewallFilterAction;
+};
+
+/** NAT table rule — `table: "nat"`. */
+export type RouterOSFirewallNatRule = RouterOSFirewallRuleBase & {
+  table: "nat";
+  chain?: "src-nat" | "dst-nat" | "postrouting" | "prerouting";
+  action?: "src-nat" | "dst-nat" | "redirect" | "masquerade";
+  "src-nat-addresses"?: string;
+  "src-nat-port"?: string;
+  "dst-nat-addresses"?: string;
+  "dst-nat-port"?: string;
+};
+
+/** Mangle table rule — `table: "mangle"`. */
+export type RouterOSFirewallMangleRule = RouterOSFirewallRuleBase & {
+  table: "mangle";
+  chain?: "prerouting" | "postrouting" | "forward" | "input" | "output";
+  action?: "accept" | "drop" | "change-mss" | "clamp-ttl" | "set-ttl"
+  | "mark-connection" | "mark-routing" | "mark-packet" | "change-tcp-mss";
+};
+
+/** Raw table rule — `table: "raw"`. */
+export type RouterOSFirewallRawRule = RouterOSFirewallRuleBase & {
+  table: "raw";
+  chain?: "prerouting" | "output";
+  action?: "accept" | "notrack" | "add-src-to-address-list" | "add-dst-to-address-list";
+};
+
+export type RouterOSFirewallRule = RouterOSFirewallFilterRuleTyped
+  | RouterOSFirewallNatRule
+  | RouterOSFirewallMangleRule
+  | RouterOSFirewallRawRule;
+
 // ─── RouterOSHelpers type ─────────────────────────────────────────────────────
 
 export type RouterOSHelpers = {
@@ -376,6 +560,7 @@ export type RouterOSHelpers = {
   };
   interface: {
     list(options?: RouterOSPrintOptions): Promise<RouterOSInterface[]>;
+    watch(options?: RouterOSWatchOptions): Promise<TypedStream<RouterOSInterface>>;
     listen(options?: RouterOSListenOptions): Promise<RouterOSStream>;
     enable(id: string, options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
     disable(id: string, options?: Omit<RouterOSCommandOptions, "attributes">): Promise<void>;
@@ -402,13 +587,13 @@ export type RouterOSHelpers = {
           name: string;
           slaves: string | readonly string[];
           mode?:
-            | "802.3ad"
-            | "balance-xor"
-            | "active-backup"
-            | "balance-rr"
-            | "broadcast"
-            | "balance-tlb"
-            | "balance-alb";
+          | "802.3ad"
+          | "balance-xor"
+          | "active-backup"
+          | "balance-rr"
+          | "broadcast"
+          | "balance-tlb"
+          | "balance-alb";
           "lacp-rate"?: "30secs" | "1sec";
           "mlag-id"?: string | number;
           "transmit-hash-policy"?: string;
@@ -432,6 +617,7 @@ export type RouterOSHelpers = {
   };
   bridge: {
     list(options?: RouterOSPrintOptions): Promise<RouterOSBridge[]>;
+    watch(options?: RouterOSWatchOptions): Promise<TypedStream<RouterOSBridge>>;
     monitor(
       bridgeId: string,
       options?: RouterOSMonitorOptions
@@ -454,6 +640,7 @@ export type RouterOSHelpers = {
     ): Promise<void>;
     port: {
       list(options?: RouterOSPrintOptions): Promise<RouterOSBridgePort[]>;
+      watch(options?: RouterOSWatchOptions): Promise<TypedStream<RouterOSBridgePort>>;
       monitor(
         portId: string,
         options?: RouterOSMonitorOptions
@@ -518,6 +705,7 @@ export type RouterOSHelpers = {
     };
     address: {
       list(options?: RouterOSPrintOptions): Promise<RouterOSIpAddress[]>;
+      watch(options?: RouterOSWatchOptions): Promise<TypedStream<RouterOSIpAddress>>;
       add(
         attributes: {
           address: string;
@@ -544,6 +732,7 @@ export type RouterOSHelpers = {
     firewall: {
       filter: {
         list(options?: RouterOSPrintOptions): Promise<RouterOSFirewallFilterRule[]>;
+        watch(options?: RouterOSWatchOptions): Promise<TypedStream<RouterOSFirewallFilterRule>>;
         add(
           attributes: Record<string, RouterOSPrimitive>,
           options?: Omit<RouterOSCommandOptions, "attributes">
@@ -756,6 +945,36 @@ function parseInterface(raw: RouterOSRecord): RouterOSInterface {
     ...(mtu !== undefined && { mtu: parseInteger(mtu) }),
     ...(actualMtu !== undefined && { "actual-mtu": parseInteger(actualMtu) }),
     ...(mac !== undefined && { "mac-address": mac }),
+  };
+}
+
+/**
+ * Parse an interface record with a `kind` discriminator.
+ * Returns `kind: "known"` when `type` matches a known {@link RouterOSInterfaceKind},
+ * otherwise `kind: "unknown"`.
+ *
+ * @example
+ * ```ts
+ * const ifaces = await helpers.interface.list();
+ * const typed = ifaces.map(parseInterfaceDiscriminated);
+ * for (const iface of typed) {
+ *   if (iface.kind === "known" && iface.type === "ether") {
+ *     console.log("Ether:", iface.name);
+ *   }
+ * }
+ * ```
+ */
+export function parseInterfaceDiscriminated(raw: RouterOSRecord): RouterOSInterfaceDiscriminated {
+  const parsed = parseInterface(raw);
+  const type = raw["type"];
+  if (type !== undefined && type !== "" && INTERFACE_KINDS.includes(type as RouterOSInterfaceKind)) {
+    return { ...parsed, kind: "known", type: type as RouterOSInterfaceKind };
+  }
+  const unknownType = type ?? parsed.type;
+  return {
+    ...parsed,
+    kind: "unknown",
+    ...(unknownType !== undefined && { type: unknownType }),
   };
 }
 
@@ -1387,6 +1606,15 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
           .print("/interface", toPrintOptions(options))
           .then((records) => records.map(parseInterface));
       },
+      async watch(options: RouterOSWatchOptions = {}): Promise<TypedStream<RouterOSInterface>> {
+        const factory = createWatch({
+          transport: client,
+          printPath: "/interface",
+          listenPath: "/interface/listen",
+          parseFn: parseInterface,
+        });
+        return factory.watch(options);
+      },
       listen(options: RouterOSListenOptions = {}): Promise<RouterOSStream> {
         return client.listen("/interface/listen", options);
       },
@@ -1455,13 +1683,13 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
             name: string;
             slaves: string | readonly string[];
             mode?:
-              | "802.3ad"
-              | "balance-xor"
-              | "active-backup"
-              | "balance-rr"
-              | "broadcast"
-              | "balance-tlb"
-              | "balance-alb";
+            | "802.3ad"
+            | "balance-xor"
+            | "active-backup"
+            | "balance-rr"
+            | "broadcast"
+            | "balance-tlb"
+            | "balance-alb";
             "lacp-rate"?: "30secs" | "1sec";
             "mlag-id"?: string | number;
             "transmit-hash-policy"?: string;
@@ -1506,6 +1734,15 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
         return client
           .print("/interface/bridge", toPrintOptions(options))
           .then((records) => records.map(parseBridge));
+      },
+      async watch(options: RouterOSWatchOptions = {}): Promise<TypedStream<RouterOSBridge>> {
+        const factory = createWatch({
+          transport: client,
+          printPath: "/interface/bridge",
+          listenPath: "/interface/bridge/listen",
+          parseFn: parseBridge,
+        });
+        return factory.watch(options);
       },
       async monitor(
         bridgeId: string,
@@ -1562,6 +1799,15 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
           return client
             .print("/interface/bridge/port", toPrintOptions(options))
             .then((records) => records.map(parseBridgePort));
+        },
+        async watch(options: RouterOSWatchOptions = {}): Promise<TypedStream<RouterOSBridgePort>> {
+          const factory = createWatch({
+            transport: client,
+            printPath: "/interface/bridge/port",
+            listenPath: "/interface/bridge/port/listen",
+            parseFn: parseBridgePort,
+          });
+          return factory.watch(options);
         },
         async monitor(
           portId: string,
@@ -1703,6 +1949,15 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
             .print("/ip/address", toPrintOptions(options))
             .then((records) => records.map(parseIpAddress));
         },
+        async watch(options: RouterOSWatchOptions = {}): Promise<TypedStream<RouterOSIpAddress>> {
+          const factory = createWatch({
+            transport: client,
+            printPath: "/ip/address",
+            listenPath: "/ip/address/listen",
+            parseFn: parseIpAddress,
+          });
+          return factory.watch(options);
+        },
         async add(
           attributes: {
             address: string;
@@ -1750,6 +2005,15 @@ function createRouterOSHelpersInternal(client: DeviceTransport): RouterOSHelpers
             return client
               .print("/ip/firewall/filter", toPrintOptions(options))
               .then((records) => records.map(parseFirewallFilterRule));
+          },
+          async watch(options: RouterOSWatchOptions = {}): Promise<TypedStream<RouterOSFirewallFilterRule>> {
+            const factory = createWatch({
+              transport: client,
+              printPath: "/ip/firewall/filter",
+              listenPath: "/ip/firewall/filter/listen",
+              parseFn: parseFirewallFilterRule,
+            });
+            return factory.watch(options);
           },
           async add(
             attributes: Record<string, RouterOSPrimitive>,
