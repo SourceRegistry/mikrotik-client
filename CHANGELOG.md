@@ -1,3 +1,15 @@
+# [1.0.0-alpha.4](https://github.com/SourceRegistry/mikrotik-client/compare/v1.0.0-alpha.3...v1.0.0-alpha.4) (2026-04-28)
+
+
+### Bug Fixes
+
+* formatting issues ([bea04e8](https://github.com/SourceRegistry/mikrotik-client/commit/bea04e8f9282e5eb24c8f916d9b0ffe40ec549ae))
+
+
+### Features
+
+* add safety primitives, connection middleware, codecs, and CHR test harness ([9b04817](https://github.com/SourceRegistry/mikrotik-client/commit/9b04817c966c1bd66a08141d138f23d9fe9c673f))
+
 # [1.0.0-alpha.3](https://github.com/SourceRegistry/mikrotik-client/compare/v1.0.0-alpha.2...v1.0.0-alpha.3) (2026-04-20)
 
 ### Features
