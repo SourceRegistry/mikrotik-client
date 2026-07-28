@@ -542,7 +542,7 @@ export function createCapsManHelpers(client: DeviceTransport): CapsManHelpers {
       ) {
         const entities = await client.print(
           "/caps-man/configuration",
-          toPrintOptions({ queries: [`name=${attrs.name}`] })
+          toPrintOptions({ queries: [`?name=${attrs.name}`] })
         );
         const parsed = entities.map(parseCapsManConfiguration);
         const existing = parsed.find((e) => e.name === attrs.name);

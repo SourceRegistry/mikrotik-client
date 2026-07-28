@@ -74,7 +74,13 @@ export async function removeBackup(
   name: string,
   options: BackupOptions = {}
 ): Promise<void> {
-  const opts = buildOpts({ queries: [`name=${name}.rsc`] }, options.signal, options.timeoutMs);
+  // /file/remove takes a `numbers=` selector (id or name), not a `?query` filter —
+  // a `?name=` query is silently rejected with "missing =.id=" and nothing is removed.
+  const opts = buildOpts(
+    { attributes: { numbers: `${name}.rsc` } },
+    options.signal,
+    options.timeoutMs
+  );
   await transport.execute("/file/remove", opts);
 }
 
@@ -132,7 +138,7 @@ export async function listBackups(
   prefix?: string,
   options: BackupOptions = {}
 ): Promise<Record<string, string>[]> {
-  const queries = prefix !== undefined ? [`name~^${prefix}`] : [];
+  const queries = prefix !== undefined ? [`?name~^${prefix}`] : [];
   const opts = buildOpts({ queries }, options.signal, options.timeoutMs);
   return transport
     .print("/file", opts)

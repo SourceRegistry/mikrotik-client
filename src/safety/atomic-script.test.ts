@@ -4,7 +4,15 @@ import type { DeviceTransport } from "../routeros/transport";
 
 function createMockTransport(): DeviceTransport {
   return {
-    execute: vi.fn().mockResolvedValue(undefined),
+    // commitConfirm (used internally by atomicScript) reads the before/after
+    // snapshots back via /file/print (contents) — the mock must answer that
+    // shape for every export it takes.
+    execute: vi.fn(async (command: string) => {
+      if (command === "/file/print") {
+        return { tag: "t", records: [{ contents: "" }], traps: [] };
+      }
+      return { tag: "t", records: [], traps: [] };
+    }),
     print: vi.fn().mockResolvedValue([]),
     listen: vi.fn().mockResolvedValue({
       on: vi.fn(),
@@ -50,6 +58,19 @@ describe("atomicScript", () => {
     expect(scriptRun).toBeDefined();
   });
 
+  it("selects the script to run via a =.id= attribute, not a ?query", async () => {
+    // /system/script/run rejects `?query` filters ("missing =.id=") and
+    // rejects `numbers=` outright ("unknown parameter numbers") — it only
+    // accepts a `.id` attribute (name or real id both work).
+    const script = "/ip address add address=10.0.0.1/24";
+    await atomicScript(transport, { script });
+
+    const executeCalls = transport.execute.mock.calls;
+    const scriptRun = executeCalls.find((call) => call[0] === "/system/script/run");
+    expect(scriptRun![1].attributes).toHaveProperty(".id");
+    expect(scriptRun![1].queries).toBeUndefined();
+  });
+
   it("cleans up temporary script after execution", async () => {
     const script = "/ip address add address=10.0.0.1/24";
     await atomicScript(transport, { script });
@@ -57,6 +78,16 @@ describe("atomicScript", () => {
     const executeCalls = transport.execute.mock.calls;
     const scriptRemove = executeCalls.find((call) => call[0] === "/system/script/remove");
     expect(scriptRemove).toBeDefined();
+  });
+
+  it("selects the script to remove via numbers=, not a ?query", async () => {
+    const script = "/ip address add address=10.0.0.1/24";
+    await atomicScript(transport, { script });
+
+    const executeCalls = transport.execute.mock.calls;
+    const scriptRemove = executeCalls.find((call) => call[0] === "/system/script/remove");
+    expect(scriptRemove![1].attributes).toHaveProperty("numbers");
+    expect(scriptRemove![1].queries).toBeUndefined();
   });
 
   it("preserves script name pattern tmp-*", async () => {

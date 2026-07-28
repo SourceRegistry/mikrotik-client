@@ -131,20 +131,23 @@ export async function atomicScript(
           );
           await t.execute("/system/script/add", createOpts);
 
-          // Step 2: Run the script
+          // Step 2: Run the script.
+          // /system/script/run selects its target via a `=.id=<name-or-id>`
+          // attribute — it doesn't accept `?query` filters or `numbers=`.
           const runOpts = buildOpts(
             {
-              queries: [`name=${scriptName}`],
+              attributes: { ".id": scriptName },
             },
             signal,
             timeoutMs
           );
           await t.execute("/system/script/run", runOpts);
 
-          // Step 3: Remove the temporary script
+          // Step 3: Remove the temporary script.
+          // Unlike run, /remove takes `numbers=` (id or unique name).
           const rmOpts = buildOpts(
             {
-              queries: [`name=${scriptName}`],
+              attributes: { numbers: scriptName },
             },
             signal,
             timeoutMs

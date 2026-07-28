@@ -39,11 +39,13 @@ describe("saveBackup", () => {
 });
 
 describe("removeBackup", () => {
-  it("executes /file/remove with query", async () => {
+  it("executes /file/remove with a numbers= selector", async () => {
+    // /file/remove takes `numbers=` (id or name) — a `?query` filter is
+    // rejected with "missing =.id=" and removes nothing.
     const transport = createMockTransport();
     await removeBackup(transport, "pre-backup");
     expect(transport.execute).toHaveBeenCalledWith("/file/remove", {
-      queries: ["name=pre-backup.rsc"],
+      attributes: { numbers: "pre-backup.rsc" },
       signal: undefined,
       timeoutMs: undefined,
     });
@@ -81,11 +83,13 @@ describe("listBackups", () => {
   });
 
   it("filters by prefix", async () => {
+    // Query words need a leading "?" or the device silently ignores the
+    // filter and returns everything.
     const transport = createMockTransport();
     vi.mocked(transport.print).mockResolvedValue([]);
     await listBackups(transport, "cc-");
     expect(transport.print).toHaveBeenCalledWith("/file", {
-      queries: ["name~^cc-"],
+      queries: ["?name~^cc-"],
       signal: undefined,
       timeoutMs: undefined,
     });

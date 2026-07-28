@@ -1,6 +1,7 @@
 import type { DeviceTransport } from "../routeros/transport";
 import type { RouterOSCommandOptions } from "../routeros/index";
-import { saveBackup, removeBackup, importExport, type BackupOptions } from "./backup";
+import { saveBackup, removeBackup, type BackupOptions } from "./backup";
+import { parseExport, diff, renderPatch, applyPatch, type Patch } from "../ir";
 
 /**
  * Build RouterOSCommandOptions with conditional inclusion of optional fields.
@@ -83,15 +84,71 @@ export type CommitConfirmOptions = {
 type TransactionState = "pending" | "confirming" | "rollingBack" | "settled";
 
 /**
+ * Read a `.rsc` file's text content back off the device via `/file/print`.
+ * Returns `""` if the file has no content or wasn't found.
+ */
+async function readFileContents(
+  transport: DeviceTransport,
+  fileNameNoExt: string,
+  signal: AbortSignal | undefined,
+  timeoutMs: number | undefined
+): Promise<string> {
+  const result = await transport.execute(
+    "/file/print",
+    buildOpts(
+      {
+        attributes: { ".proplist": ["contents"] },
+        queries: [`?name=${fileNameNoExt}.rsc`],
+      },
+      signal,
+      timeoutMs
+    )
+  );
+  return result.records[0]?.contents ?? "";
+}
+
+/**
+ * Apply a revert {@link Patch} and throw if any operation failed.
+ * `applyPatch` never throws on its own — it collects failures in the
+ * result — so callers that need rollback failures to surface must check.
+ */
+async function applyRevertPatch(
+  transport: DeviceTransport,
+  patch: Patch,
+  signal: AbortSignal | undefined,
+  timeoutMs: number | undefined
+): Promise<void> {
+  const applyOpts = {
+    ...(signal !== undefined && { signal }),
+    ...(timeoutMs !== undefined && { timeoutMs }),
+  };
+  const result = await applyPatch(transport, patch, applyOpts);
+  if (result.failed.length > 0) {
+    const detail = result.failed.map((f) => f.error).join("; ");
+    throw new Error(
+      `commitConfirm rollback incomplete (${result.failed.length} failed): ${detail}`
+    );
+  }
+}
+
+/**
  * Apply changes to a device with a commit-confirm safety wrapper.
  *
  * ### How it works:
  *
- * 1. Save a script export: `/export file=pre-${txid}`.
- * 2. Run `fn(transport)` to apply the mutation.
- * 3. Schedule an auto-revert via `/system scheduler` that imports the
- *    backup after `windowSeconds` if `confirm()` is not called.
- * 4. Return `CommitConfirmHandle` with `confirm()` and `rollback()`.
+ * 1. Save a script export (`/export file=pre-${txid}`) — kept on the device
+ *    for the duration of the window as a manual last-resort artifact, and
+ *    parsed into IR as the "before" snapshot.
+ * 2. Run `fn(transport)` to apply the mutation, then take a second,
+ *    throwaway export and parse it as the "after" snapshot.
+ * 3. Diff `after` → `before` and render the result as a RouterOS script —
+ *    this is the *targeted* set of `add`/`set`/`remove` commands needed to
+ *    undo exactly what `fn()` changed (unlike replaying a raw `/export`
+ *    dump, which chokes on default objects that already exist and can't
+ *    delete anything `fn()` added in the first place).
+ * 4. Schedule that script via `/system scheduler` to run after
+ *    `windowSeconds` if `confirm()` is not called.
+ * 5. Return `CommitConfirmHandle` with `confirm()` and `rollback()`.
  *
  * ### confirm()
  *
@@ -100,7 +157,7 @@ type TransactionState = "pending" | "confirming" | "rollingBack" | "settled";
  *
  * ### rollback()
  *
- * 1. Import the backup: `/import file=pre-${txid}.rsc`.
+ * 1. Apply the revert patch computed in step 3 above.
  * 2. Remove the revert scheduler.
  * 3. Delete the backup file.
  *
@@ -162,10 +219,15 @@ export async function commitConfirm(opts: CommitConfirmOptions): Promise<CommitC
   // Step 1: Generate transaction ID
   const txid = crypto.randomUUID().slice(0, 8);
   const backupFile = `pre-${txid}`;
+  const afterFile = `post-${txid}`;
   const schedulerName = `revert-${txid}`;
 
-  // Step 2: Save export backup
+  // Step 2: Save export backup (kept as a manual fallback for the whole
+  // window) and parse it as the "before" snapshot.
   await saveBackup(transport, backupFile, buildBackupOpts(signal, timeoutMs));
+  const beforeConfig = parseExport(
+    await readFileContents(transport, backupFile, signal, timeoutMs)
+  );
 
   // Step 3: Run the mutation function — clean up backup on failure
   try {
@@ -179,14 +241,41 @@ export async function commitConfirm(opts: CommitConfirmOptions): Promise<CommitC
     throw err;
   }
 
+  // Step 3.5: Take a throwaway "after" snapshot and compute the revert patch —
+  // the minimal set of add/set/remove commands that undo exactly what fn()
+  // changed. This is what actually gets scheduled and what rollback() applies.
+  await saveBackup(transport, afterFile, buildBackupOpts(signal, timeoutMs));
+  const afterConfig = parseExport(await readFileContents(transport, afterFile, signal, timeoutMs));
+  try {
+    await removeBackup(transport, afterFile, buildBackupOpts(signal, timeoutMs));
+  } catch {
+    // best-effort — throwaway file, not load-bearing
+  }
+  const revertPatch = diff(afterConfig, beforeConfig);
+
   // Step 4: Schedule auto-revert
   const deadlineMs = Date.now() + windowSeconds * 1000;
   const deadlineDate = new Date(deadlineMs);
 
-  // Build the scheduled revert command
-  // Format: YYYY/Mm/DD h:mm:ss (RouterOS date format)
+  // Build the scheduled revert command.
+  // RouterOS scheduler start-date requires a month abbreviation, e.g. "jan/02/2027" —
+  // zero-padded numeric months (e.g. "01/02/2027") are rejected with "invalid date".
+  const MONTH_ABBREVIATIONS = [
+    "jan",
+    "feb",
+    "mar",
+    "apr",
+    "may",
+    "jun",
+    "jul",
+    "aug",
+    "sep",
+    "oct",
+    "nov",
+    "dec",
+  ] as const;
   const year = deadlineDate.getUTCFullYear().toString();
-  const month = (deadlineDate.getUTCMonth() + 1).toString().padStart(2, "0");
+  const month = MONTH_ABBREVIATIONS[deadlineDate.getUTCMonth()];
   const day = deadlineDate.getUTCDate().toString().padStart(2, "0");
   const hours = deadlineDate.getUTCHours().toString().padStart(2, "0");
   const minutes = deadlineDate.getUTCMinutes().toString().padStart(2, "0");
@@ -194,7 +283,7 @@ export async function commitConfirm(opts: CommitConfirmOptions): Promise<CommitC
   const startDate = `${month}/${day}/${year}`;
   const startTime = `${hours}:${minutes}:${seconds}`;
 
-  const revertScript = `/import file=${backupFile}.rsc`;
+  const revertScript = renderPatch(revertPatch);
 
   const cmdOpts = buildOpts(
     {
@@ -203,13 +292,30 @@ export async function commitConfirm(opts: CommitConfirmOptions): Promise<CommitC
         "on-event": revertScript,
         "start-date": startDate,
         "start-time": startTime,
-        policy: "read,write,admin,test",
+        policy: "read,write,policy,test",
       },
     },
     signal,
     timeoutMs
   );
-  await transport.execute("/system/scheduler/add", cmdOpts);
+  try {
+    await transport.execute("/system/scheduler/add", cmdOpts);
+  } catch (err) {
+    // The mutation from Step 3 is already live on the device but has no
+    // auto-revert armed. Leaving it in place would defeat the point of
+    // commit-confirm, so roll back immediately using the revert patch.
+    try {
+      await applyRevertPatch(transport, revertPatch, signal, timeoutMs);
+    } catch {
+      // best-effort — still surface the original scheduler error below
+    }
+    try {
+      await removeBackup(transport, backupFile, buildBackupOpts(signal, timeoutMs));
+    } catch {
+      // best-effort
+    }
+    throw err;
+  }
 
   // Step 5: Create and return the handle
   let state: TransactionState = "pending";
@@ -220,9 +326,13 @@ export async function commitConfirm(opts: CommitConfirmOptions): Promise<CommitC
 
   const cleanupScheduler = async (): Promise<void> => {
     try {
+      // /system/scheduler/remove takes a `numbers=` selector (id or unique
+      // name) — a `?query` filter is rejected with "missing =.id=" and
+      // silently removes nothing, leaving the entry to fire later even
+      // after confirm().
       const rmOpts = buildOpts(
         {
-          queries: [`name=${schedulerName}`],
+          attributes: { numbers: schedulerName },
         },
         signal,
         timeoutMs
@@ -255,10 +365,7 @@ export async function commitConfirm(opts: CommitConfirmOptions): Promise<CommitC
     if (state !== "pending") return;
     state = "rollingBack";
     try {
-      await importExport(transport, backupFile, {
-        ...buildBackupOpts(signal, timeoutMs),
-        confirm: true,
-      });
+      await applyRevertPatch(transport, revertPatch, signal, timeoutMs);
     } finally {
       await cleanupScheduler();
       await cleanupBackup();
