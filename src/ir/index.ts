@@ -59,6 +59,8 @@ export {
   // Renderer
   renderScript,
   renderIdentity,
+  quoteValue,
+  needsQuoting,
   type RenderScriptOptions,
 } from "./render";
 
@@ -66,6 +68,7 @@ export {
   // Diff and patch
   diff,
   applyPatch,
+  renderPatch,
   type Patch,
   type PatchItem,
   type PatchOp,

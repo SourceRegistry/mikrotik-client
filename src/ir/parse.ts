@@ -207,6 +207,18 @@ class Parser {
   readonly tokens: Token[];
   readonly options: ParseExportOptions;
   pos = 0;
+  /**
+   * The most recently seen bare path header (e.g. `/interface bridge`
+   * on its own line). RouterOS `/export` output groups a path header
+   * followed by several un-prefixed command lines:
+   * ```
+   * /interface bridge
+   * add name=bridge-local
+   * add name=bridge-vpn
+   * ```
+   * Command-only lines inherit this as their path.
+   */
+  currentPath = "";
 
   constructor(tokens: Token[], options: ParseExportOptions = {}) {
     this.tokens = tokens;
@@ -432,12 +444,31 @@ function parseItem(parser: Parser): IRItem | null {
     return parseSystemCommand(parser);
   }
 
-  // Command-only line (inside a block context): e.g. `add name=bridge1`
+  // Command-only line: e.g. `add name=bridge1`, inheriting the path from
+  // the most recent bare path header (see `Parser.currentPath`).
   if (token.type === "word" && (IR_RESOURCE_COMMANDS as readonly string[]).includes(token.value)) {
     const command = token.value as IRResourceCommand;
     parser.advance();
+
+    let findQuery: IRProperty[] | undefined;
+    if (
+      ["set", "remove", "disable", "enable"].includes(command) &&
+      parser.current.type === "bracketOpen"
+    ) {
+      findQuery = parseFindQuery(parser);
+    }
+
     const properties = parseProperties(parser);
-    return { kind: "resource", path: "", command, properties };
+    const result: IRResourceBlock = {
+      kind: "resource",
+      path: parser.currentPath,
+      command,
+      properties,
+    };
+    if (findQuery !== undefined) {
+      result.findQuery = findQuery;
+    }
+    return result;
   }
 
   // Resource path
@@ -452,20 +483,27 @@ function parseItem(parser: Parser): IRItem | null {
       parser.advance();
     }
 
+    // Remember this as the current section for any bare command lines
+    // that follow (RouterOS export groups a path header with several
+    // un-prefixed command lines under it — see `Parser.currentPath`).
+    parser.currentPath = path;
+
     // Block grouping: `/path { add name=x; add name=y }`
     if (parser.current.type === "braceOpen") {
       const block = parseBlock(parser);
       return block;
     }
 
-    // Command
-    let command: IRResourceCommand;
-    if (parser.current.type === "word" && COMMAND_KEYWORDS.has(parser.current.value)) {
-      command = parser.current.value as IRResourceCommand;
-      parser.advance();
-    } else {
-      command = "add";
+    // Bare path header with no command on the same line — it only sets
+    // the section context above; it isn't a resource block on its own.
+    const headToken = parser.current;
+    if (headToken.type !== "word" || !COMMAND_KEYWORDS.has(headToken.value)) {
+      return null;
     }
+
+    // Command
+    const command = headToken.value as IRResourceCommand;
+    parser.advance();
 
     // Find query
     let findQuery: IRProperty[] | undefined;

@@ -141,7 +141,7 @@ function getOrderHint(path: string, orderHints: Record<string, number> | undefin
  * Determine if a value needs quoting in RouterOS script output.
  * Values need quotes if they contain spaces, special chars, or are empty.
  */
-function needsQuoting(value: string): boolean {
+export function needsQuoting(value: string): boolean {
   if (value === "") return true;
   // Need quoting if contains spaces, quotes, or special characters
   return /[\s"'#${}[\]]/.test(value);
@@ -150,7 +150,7 @@ function needsQuoting(value: string): boolean {
 /**
  * Quote a value for RouterOS script output.
  */
-function quoteValue(value: string): string {
+export function quoteValue(value: string): string {
   if (!needsQuoting(value)) return value;
   // Escape internal quotes
   const escaped = value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');

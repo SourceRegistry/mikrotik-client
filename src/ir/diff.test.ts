@@ -238,8 +238,16 @@ describe("applyPatch", () => {
   });
 
   it("applies update operations via transport", async () => {
+    // RouterOS /set doesn't accept a ?query filter directly ("missing
+    // =.id=") — applyPatch must resolve the find filter to a concrete .id
+    // via /print first, then select it in the /set call via numbers=.
     const mockTransport: Partial<DeviceTransport> = {
-      execute: vi.fn().mockResolvedValue({ sentences: [], status: "done" }),
+      execute: vi.fn(async (command: string) => {
+        if (command === "/interface/ethernet/print") {
+          return { tag: "t", records: [{ ".id": "*1" }], traps: [] };
+        }
+        return { tag: "t", records: [], traps: [] };
+      }),
     };
     const transport = mockTransport as DeviceTransport;
 
@@ -262,17 +270,22 @@ describe("applyPatch", () => {
     expect(result.applied).toBe(1);
     expect(result.failed).toHaveLength(0);
     expect(transport.execute).toHaveBeenCalledWith(
-      "/interface ethernet/set",
+      "/interface/ethernet/set",
       expect.objectContaining({
-        queries: expect.any(Array),
-        attributes: expect.objectContaining({ disabled: "no" }),
+        attributes: expect.objectContaining({ disabled: "no", numbers: "*1" }),
       })
     );
   });
 
   it("applies delete operations via transport", async () => {
+    // Same resolve-then-mutate requirement as /set applies to /remove.
     const mockTransport: Partial<DeviceTransport> = {
-      execute: vi.fn().mockResolvedValue({ sentences: [], status: "done" }),
+      execute: vi.fn(async (command: string) => {
+        if (command === "/ip/address/print") {
+          return { tag: "t", records: [{ ".id": "*5" }], traps: [] };
+        }
+        return { tag: "t", records: [], traps: [] };
+      }),
     };
     const transport = mockTransport as DeviceTransport;
 
@@ -286,7 +299,74 @@ describe("applyPatch", () => {
     const result = await applyPatch(transport, patch, {});
     expect(result.applied).toBe(1);
     expect(result.failed).toHaveLength(0);
-    expect(transport.execute).toHaveBeenCalledWith("/ip address/remove", expect.any(Object));
+    expect(transport.execute).toHaveBeenCalledWith("/ip/address/remove", {
+      attributes: { numbers: "*5" },
+      timeoutMs: 30000,
+    });
+  });
+
+  it("updates a singleton resource (no .id) without a numbers= selector", async () => {
+    // /system identity, /system clock, etc. have exactly one implicit
+    // record and no `.id` — their /set rejects `numbers=` outright with
+    // "unknown parameter numbers". /print resolving to a record with no
+    // `.id` field is the signal to mutate unselected.
+    const mockTransport: Partial<DeviceTransport> = {
+      execute: vi.fn(async (command: string) => {
+        if (command === "/system/identity/print") {
+          return { tag: "t", records: [{}], traps: [] };
+        }
+        return { tag: "t", records: [], traps: [] };
+      }),
+    };
+    const transport = mockTransport as DeviceTransport;
+
+    // Built by hand rather than via diff(): diff()'s key-matching uses
+    // "name" as the identity property, which doesn't work when "name" is
+    // itself the property being changed (as for /system identity) — that's
+    // a separate diff-matching nuance, not what this test is about.
+    const patch = {
+      create: [],
+      delete: [],
+      update: [
+        {
+          op: "update" as const,
+          block: resource("/system identity", "set", [{ name: "name", value: "new" }]),
+          changes: [{ name: "name", oldValue: "old", newValue: "new" }],
+        },
+      ],
+    };
+
+    const result = await applyPatch(transport, patch, {});
+    expect(result.applied).toBe(1);
+    expect(result.failed).toHaveLength(0);
+    expect(transport.execute).toHaveBeenCalledWith(
+      "/system/identity/set",
+      expect.objectContaining({ attributes: { name: "new" } })
+    );
+    const setCall = (transport.execute as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c) => c[0] === "/system/identity/set"
+    );
+    expect(setCall![1].attributes).not.toHaveProperty("numbers");
+  });
+
+  it("skips update/delete when the find filter resolves to nothing", async () => {
+    // If the target no longer exists on the device (already reverted,
+    // manually removed, etc.), that's a no-op, not a failure.
+    const mockTransport: Partial<DeviceTransport> = {
+      execute: vi.fn().mockResolvedValue({ tag: "t", records: [], traps: [] }),
+    };
+    const transport = mockTransport as DeviceTransport;
+
+    const current = config([
+      resource("/ip address", "add", [{ name: "address", value: "192.168.1.1/24" }]),
+    ]);
+    const desired = config([]);
+    const patch = diff(current, desired);
+
+    const result = await applyPatch(transport, patch, {});
+    expect(result.applied).toBe(0);
+    expect(result.skipped).toBe(1);
+    expect(result.failed).toHaveLength(0);
   });
 
   it("handles abort signal during update operations", async () => {
@@ -378,8 +458,16 @@ describe("applyPatch", () => {
   });
 
   it("applies mixed create, update, delete in a single patch", async () => {
+    // update/delete each take an extra /print resolve call now, so a raw
+    // execute() call count no longer maps 1:1 to patch operations — assert
+    // on applied/skipped/failed instead.
     const mockTransport: Partial<DeviceTransport> = {
-      execute: vi.fn().mockResolvedValue({ sentences: [], status: "done" }),
+      execute: vi.fn(async (command: string) => {
+        if (command.endsWith("/print")) {
+          return { tag: "t", records: [{ ".id": "*9" }], traps: [] };
+        }
+        return { tag: "t", records: [], traps: [] };
+      }),
     };
     const transport = mockTransport as DeviceTransport;
 
@@ -409,11 +497,8 @@ describe("applyPatch", () => {
     const patch = diff(current, desired);
 
     const result = await applyPatch(transport, patch, {});
-    expect(result.applied).toBeGreaterThan(0);
+    expect(result.applied).toBe(patch.create.length + patch.update.length + patch.delete.length);
+    expect(result.skipped).toBe(0);
     expect(result.failed).toHaveLength(0);
-    // Should have called execute for each operation type
-    expect(transport.execute).toHaveBeenCalledTimes(
-      patch.create.length + patch.update.length + patch.delete.length
-    );
   });
 });

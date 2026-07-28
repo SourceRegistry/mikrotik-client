@@ -1,4 +1,5 @@
 import { type IRResourceBlock, type RouterOSConfig, isResourceBlock } from "./types";
+import { quoteValue, needsQuoting } from "./render";
 
 // ─── Diff Types ──────────────────────────────────────────────────────────────
 
@@ -86,6 +87,17 @@ const STABLE_ID_PROPERTIES = ["default-name", "name", "comment"] as const;
  */
 function getResourceKey(block: IRResourceBlock): string {
   const path = block.path;
+
+  // A bare `set <props>` with no `[find ...]` only occurs in RouterOS export
+  // syntax for singleton menus (/system identity, /system clock, /ip cloud,
+  // ...) — list resources always need a find filter or come from `add`. Key
+  // these by path alone so a changed property (even one that would
+  // otherwise look like the identifying property, e.g. `name` on
+  // /system identity) is matched as an update, not a mismatched
+  // delete+create — the singleton has no `/add` command to create it with.
+  if (block.command === "set" && (!block.findQuery || block.findQuery.length === 0)) {
+    return path;
+  }
 
   // For 'set' commands with findQuery, build key from find properties
   if (block.command === "set" && block.findQuery && block.findQuery.length > 0) {
@@ -218,6 +230,16 @@ export type ApplyPatchOptions = {
 // ─── Convert Block For Operation ──────────────────────────────────────────────
 
 /**
+ * Convert an IR resource path (space-separated, as it appears in script
+ * text — e.g. `"/interface bridge"`) to the slash-separated form the
+ * binary/REST API's `execute()` expects (`"/interface/bridge"`). Sending
+ * the space form directly fails with "no such command or directory".
+ */
+function toApiPath(path: string): string {
+  return path.trim().replace(/\s+/g, "/");
+}
+
+/**
  * Convert an IRResourceBlock to attributes suitable for a RouterOS 'set' command.
  */
 function convertToSetAttributes(block: IRResourceBlock): Record<string, string> {
@@ -314,6 +336,64 @@ export function diff(current: RouterOSConfig, desired: RouterOSConfig): Patch {
 }
 
 /**
+ * Render a single command line for a patch create/update/delete operation.
+ */
+function renderPatchLine(op: PatchItem): string {
+  if (op.op === "create") {
+    const parts = [op.block.path, "add"];
+    for (const prop of op.block.properties) {
+      const value = needsQuoting(prop.value) ? quoteValue(prop.value) : prop.value;
+      parts.push(`${prop.name}=${value}`);
+    }
+    return parts.join(" ");
+  }
+
+  const findQueries = convertToFindStrings(op.block);
+  const findClause = findQueries.length > 0 ? ` [find ${findQueries.join(" ")}]` : "";
+
+  if (op.op === "delete") {
+    return `${op.block.path} remove${findClause}`;
+  }
+
+  // update
+  const findPropNames = new Set((op.block.findQuery ?? []).map((p) => p.name));
+  const parts = [op.block.path, "set" + findClause];
+  for (const prop of op.block.properties) {
+    if (findPropNames.has(prop.name)) continue;
+    const value = needsQuoting(prop.value) ? quoteValue(prop.value) : prop.value;
+    parts.push(`${prop.name}=${value}`);
+  }
+  return parts.join(" ");
+}
+
+/**
+ * Render a {@link Patch} as standalone RouterOS script text.
+ *
+ * Produces the same commands {@link applyPatch} would execute, one per line,
+ * in `create` → `update` → `delete` order. Useful for embedding a patch as a
+ * scheduler `on-event` body or any other context where the changes must run
+ * on the device without a live client connection.
+ *
+ * @param patch - The patch to render.
+ * @returns RouterOS script text (may be empty if the patch has no operations).
+ *
+ * @example
+ * ```ts
+ * import { diff, renderPatch } from '@sourceregistry/mikrotik-client/ir';
+ *
+ * const revertPatch = diff(after, before);
+ * const script = renderPatch(revertPatch);
+ * ```
+ */
+export function renderPatch(patch: Patch): string {
+  const lines: string[] = [];
+  for (const op of patch.create) lines.push(renderPatchLine(op));
+  for (const op of patch.update) lines.push(renderPatchLine(op));
+  for (const op of patch.delete) lines.push(renderPatchLine(op));
+  return lines.length === 0 ? "" : lines.join("\n") + "\n";
+}
+
+/**
  * Check if a {@link Patch} has no changes (is empty).
  *
  * @param patch - The patch to check.
@@ -328,6 +408,52 @@ export function isPatchEmpty(patch: Patch): boolean {
  */
 export function patchSize(patch: Patch): number {
   return patch.create.length + patch.update.length + patch.delete.length;
+}
+
+/**
+ * Result of resolving a `[find ...]`-style filter against the device.
+ */
+type ResolveResult =
+  /** No matching record — the target is already gone (or never existed). */
+  | { kind: "not-found" }
+  /**
+   * Matched a singleton resource (e.g. `/system identity`, `/system clock`)
+   * — these have no `.id` and their `/set` rejects `numbers=` outright with
+   * "unknown parameter numbers". Mutate them directly, unselected.
+   */
+  | { kind: "singleton" }
+  /** Matched one or more list records — mutate via `numbers=`. */
+  | { kind: "ids"; ids: string[] };
+
+/**
+ * Resolve a `[find ...]`-style filter to concrete `.id` values by printing
+ * with the filter first. RouterOS's `/set` and `/remove` commands don't
+ * accept `?query` filters directly (they reject them with "missing =.id=")
+ * — only a `numbers=` selector (id or unique name). The CLI's `[find ...]`
+ * bracket syntax works by doing exactly this resolution step internally.
+ */
+async function resolveTarget(
+  transport: DeviceTransport,
+  path: string,
+  findQueries: string[],
+  timeoutMs: number,
+  signal: AbortSignal | undefined
+): Promise<ResolveResult> {
+  if (findQueries.length === 0) return { kind: "not-found" };
+  const queries = findQueries.map((q) => (q.startsWith("?") ? q : `?${q}`));
+  const printOpts: Record<string, unknown> = {
+    attributes: { ".proplist": [".id"] },
+    queries,
+    timeoutMs,
+  };
+  if (signal !== undefined) printOpts.signal = signal;
+  const result = await transport.execute(
+    `${toApiPath(path)}/print`,
+    printOpts as Parameters<typeof transport.execute>[1]
+  );
+  if (result.records.length === 0) return { kind: "not-found" };
+  const ids = result.records.map((r) => r[".id"]).filter((id): id is string => Boolean(id));
+  return ids.length > 0 ? { kind: "ids", ids } : { kind: "singleton" };
 }
 
 /**
@@ -367,7 +493,7 @@ export async function applyPatch(
     }
 
     try {
-      const command = `${op.block.path}/add`;
+      const command = `${toApiPath(op.block.path)}/add`;
       const attrs = convertToSetAttributes(op.block);
       const cmdOpts: Record<string, unknown> = { attributes: attrs, timeoutMs };
       if (signal !== undefined) cmdOpts.signal = signal;
@@ -393,6 +519,12 @@ export async function applyPatch(
 
     try {
       const findQueries = convertToFindStrings(op.block);
+      const target = await resolveTarget(transport, op.block.path, findQueries, timeoutMs, signal);
+      if (target.kind === "not-found") {
+        result.skipped++; // nothing on the device matches the find filter anymore
+        continue;
+      }
+
       const attrs = convertToSetAttributes(op.block);
 
       // Build attributes excluding find properties (those are used for selection)
@@ -403,15 +535,17 @@ export async function applyPatch(
           setAttrs[name] = value;
         }
       }
+      if (target.kind === "ids") {
+        setAttrs.numbers = target.ids.join(",");
+      }
 
       const cmdOpts: Record<string, unknown> = {
         attributes: setAttrs,
-        queries: findQueries,
         timeoutMs,
       };
       if (signal !== undefined) cmdOpts.signal = signal;
       await transport.execute(
-        `${op.block.path}/set`,
+        `${toApiPath(op.block.path)}/set`,
         cmdOpts as Parameters<typeof transport.execute>[1]
       );
       result.applied++;
@@ -435,10 +569,23 @@ export async function applyPatch(
 
     try {
       const findQueries = convertToFindStrings(op.block);
-      const cmdOpts: Record<string, unknown> = { queries: findQueries, timeoutMs };
+      const target = await resolveTarget(transport, op.block.path, findQueries, timeoutMs, signal);
+      if (target.kind === "not-found") {
+        result.skipped++; // already gone — nothing to delete
+        continue;
+      }
+      if (target.kind === "singleton") {
+        result.skipped++; // singleton resources (e.g. /system identity) can't be removed
+        continue;
+      }
+
+      const cmdOpts: Record<string, unknown> = {
+        attributes: { numbers: target.ids.join(",") },
+        timeoutMs,
+      };
       if (signal !== undefined) cmdOpts.signal = signal;
       await transport.execute(
-        `${op.block.path}/remove`,
+        `${toApiPath(op.block.path)}/remove`,
         cmdOpts as Parameters<typeof transport.execute>[1]
       );
 
