@@ -108,6 +108,51 @@ describe("parseExport", () => {
       expect(resources).toHaveLength(3);
     });
 
+    it("inherits path from a bare header line for un-prefixed command lines", () => {
+      // The most common real /export shape: a path header on its own line
+      // followed by several bare command lines, e.g.:
+      //   /interface bridge
+      //   add name=bridge-local
+      //   add name=bridge-vpn
+      // Without path inheritance every command line loses its path.
+      const config = parseExport("/interface bridge\nadd name=bridge-local\nadd name=bridge-vpn\n");
+      const resources = config.items.filter(isResourceBlock);
+      expect(resources).toHaveLength(2);
+      for (const block of resources) {
+        expect(block.path).toBe("/interface bridge");
+        expect(block.command).toBe("add");
+      }
+      expect(resources[0]?.properties).toContainEqual({ name: "name", value: "bridge-local" });
+      expect(resources[1]?.properties).toContainEqual({ name: "name", value: "bridge-vpn" });
+    });
+
+    it("parses a bare path header line as context only, not a spurious block", () => {
+      const config = parseExport("/interface bridge\nadd name=x\n");
+      // Only the real "add" line should produce a resource block — the
+      // header line by itself must not turn into an empty phantom "add".
+      const resources = config.items.filter(isResourceBlock);
+      expect(resources).toHaveLength(1);
+    });
+
+    it("captures a bare positional selector after set/remove/disable/enable as an implicit name find", () => {
+      // RouterOS exports fixed-cardinality menus (entries can't be added or
+      // removed, notably /ip service) with a bare name instead of
+      // `[find ...]`:
+      //   /ip service
+      //   set api disabled=yes
+      //   set telnet disabled=no
+      // Without this, "api"/"telnet" is indistinguishable from stray
+      // property noise and gets silently dropped, so every entry in the
+      // menu collapses to the same (path-only) identity.
+      const config = parseExport("/ip service\nset api disabled=yes\nset telnet disabled=no\n");
+      const resources = config.items.filter(isResourceBlock);
+      expect(resources).toHaveLength(2);
+      expect(resources[0]?.findQuery).toEqual([{ name: "name", value: "api" }]);
+      expect(resources[0]?.properties).toEqual([{ name: "disabled", value: "yes" }]);
+      expect(resources[1]?.findQuery).toEqual([{ name: "name", value: "telnet" }]);
+      expect(resources[1]?.properties).toEqual([{ name: "disabled", value: "no" }]);
+    });
+
     it("parses resource blocks with quoted values", () => {
       const config = parseExport(
         '/interface ethernet set [find default-name=ether1] comment="my interface"'

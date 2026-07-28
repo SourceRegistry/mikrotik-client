@@ -323,6 +323,33 @@ function parseFindQuery(parser: Parser): IRProperty[] {
   return props;
 }
 
+/**
+ * Parse the selector for a `set`/`remove`/`disable`/`enable` command: either
+ * a `[find ...]` bracket, or a bare positional name. RouterOS exports some
+ * fixed-cardinality menus (notably `/ip service` — entries can't be added or
+ * removed) with the bare form instead of `[find ...]`:
+ * ```
+ * /ip service
+ * set api disabled=yes
+ * set telnet disabled=no
+ * ```
+ * Without this, the bare `api`/`telnet` word is indistinguishable from
+ * ordinary property noise and gets silently dropped — every entry in the
+ * menu ends up with identical (empty) properties and collides under the
+ * same diff key, so changes to entries other than the first are lost.
+ */
+function parseSelector(parser: Parser): IRProperty[] | undefined {
+  if (parser.current.type === "bracketOpen") {
+    return parseFindQuery(parser);
+  }
+  if (parser.current.type === "word" && !parser.current.value.includes("=")) {
+    const value = parser.current.value;
+    parser.advance();
+    return [{ name: "name", value }];
+  }
+  return undefined;
+}
+
 // ─── Parse Properties Until Newline ───────────────────────────────────────────
 
 function parseProperties(parser: Parser): IRProperty[] {
@@ -451,11 +478,8 @@ function parseItem(parser: Parser): IRItem | null {
     parser.advance();
 
     let findQuery: IRProperty[] | undefined;
-    if (
-      ["set", "remove", "disable", "enable"].includes(command) &&
-      parser.current.type === "bracketOpen"
-    ) {
-      findQuery = parseFindQuery(parser);
+    if (["set", "remove", "disable", "enable"].includes(command)) {
+      findQuery = parseSelector(parser);
     }
 
     const properties = parseProperties(parser);
@@ -507,11 +531,8 @@ function parseItem(parser: Parser): IRItem | null {
 
     // Find query
     let findQuery: IRProperty[] | undefined;
-    if (
-      ["set", "remove", "disable", "enable"].includes(command) &&
-      parser.current.type === "bracketOpen"
-    ) {
-      findQuery = parseFindQuery(parser);
+    if (["set", "remove", "disable", "enable"].includes(command)) {
+      findQuery = parseSelector(parser);
     }
 
     // Properties

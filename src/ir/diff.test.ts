@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { diff, applyPatch, isPatchEmpty, patchSize } from "./diff";
+import { diff, applyPatch, renderPatch, isPatchEmpty, patchSize } from "./diff";
+import { parseExport } from "./parse";
 import {
   createEmptyConfig,
   type IRResourceBlock,
@@ -500,5 +501,23 @@ describe("applyPatch", () => {
     expect(result.applied).toBe(patch.create.length + patch.update.length + patch.delete.length);
     expect(result.skipped).toBe(0);
     expect(result.failed).toHaveLength(0);
+  });
+
+  it("end-to-end: diffing real /ip service export text produces a targeted revert script", () => {
+    // Regression for the actual failure found live: a scheduled revert with
+    // an empty on-event because the bare "api"/"telnet" identifiers were
+    // lost during parsing, so every /ip service entry collapsed to the
+    // same (path-only) key and the diff came out empty.
+    const before = parseExport("/ip service\nset api disabled=no\nset telnet disabled=no\n");
+    const after = parseExport("/ip service\nset api disabled=yes\nset telnet disabled=no\n");
+
+    const revertPatch = diff(after, before);
+    expect(revertPatch.update).toHaveLength(1);
+    expect(revertPatch.update[0]?.block.findQuery).toEqual([{ name: "name", value: "api" }]);
+
+    const script = renderPatch(revertPatch);
+    expect(script).toContain("[find name=api]");
+    expect(script).toContain("disabled=no");
+    expect(script).not.toContain("telnet");
   });
 });
