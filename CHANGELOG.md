@@ -1,3 +1,10 @@
+# [1.0.0-alpha.8](https://github.com/SourceRegistry/mikrotik-client/compare/v1.0.0-alpha.7...v1.0.0-alpha.8) (2026-07-28)
+
+
+### Bug Fixes
+
+* **ir:** bare positional selector after set/remove lost RouterOS entry identity ([7b79826](https://github.com/SourceRegistry/mikrotik-client/commit/7b798265854ef73854f9587295a8b5575d7d0f19))
+
 # [1.0.0-alpha.7](https://github.com/SourceRegistry/mikrotik-client/compare/v1.0.0-alpha.6...v1.0.0-alpha.7) (2026-07-28)
 
 
