@@ -1,3 +1,12 @@
+# [1.0.0-alpha.7](https://github.com/SourceRegistry/mikrotik-client/compare/v1.0.0-alpha.6...v1.0.0-alpha.7) (2026-07-28)
+
+
+### Bug Fixes
+
+* **ir:** parser lost path context across lines, applyPatch never worked against a real device ([942d3c9](https://github.com/SourceRegistry/mikrotik-client/commit/942d3c91a9a2f58e2bd70587d4c3e853fcae52fd))
+* **routeros:** plaintext client defaulted to TLS port, malformed replies crashed the process ([1f2c333](https://github.com/SourceRegistry/mikrotik-client/commit/1f2c33376bc78b685f1b0257c3047ce746972cc9))
+* **safety:** commit-confirm rollback didn't work against real devices ([a06a205](https://github.com/SourceRegistry/mikrotik-client/commit/a06a205d93ef12d589748c167760dc29883f3ed3))
+
 # [1.0.0-alpha.6](https://github.com/SourceRegistry/mikrotik-client/compare/v1.0.0-alpha.5...v1.0.0-alpha.6) (2026-04-28)
 
 
