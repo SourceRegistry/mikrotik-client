@@ -1,3 +1,10 @@
+# [1.0.0-alpha.10](https://github.com/SourceRegistry/mikrotik-client/compare/v1.0.0-alpha.9...v1.0.0-alpha.10) (2026-07-28)
+
+
+### Bug Fixes
+
+* **safety:** full self-heal for lockout-prone properties left at default ([2464125](https://github.com/SourceRegistry/mikrotik-client/commit/246412535f4f0aa07ed339d60ff53d6f12be252c))
+
 # [1.0.0-alpha.9](https://github.com/SourceRegistry/mikrotik-client/compare/v1.0.0-alpha.8...v1.0.0-alpha.9) (2026-07-28)
 
 
