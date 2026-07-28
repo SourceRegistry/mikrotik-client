@@ -72,7 +72,7 @@ console.log(result.records);
 ### REST (HTTP / HTTPS v7+)
 
 ```ts
-import { RouterOSRestClient } from "@sourceregistry/mikrotik-client";
+import { RouterOSRestClient, createRouterOSHelpers } from "@sourceregistry/mikrotik-client";
 
 const client = new RouterOSRestClient({
   baseUrl: "https://router.example.com",
@@ -80,7 +80,8 @@ const client = new RouterOSRestClient({
   password: "secret",
 });
 
-const addresses = await client.ip.address.print();
+const helpers = createRouterOSHelpers(client);
+const addresses = await helpers.ip.address.list();
 ```
 
 ### SSH
@@ -240,18 +241,16 @@ import { commitConfirm, saveBackup } from "@sourceregistry/mikrotik-client/safet
 
 await saveBackup(client, "pre-change.rsc");
 
-const handle = await commitConfirm(
-  client,
-  {
-    timeoutMs: 120_000,
-  },
-  async () => {
+const handle = await commitConfirm({
+  transport: client,
+  timeoutMs: 120_000,
+  async fn() {
     await client.ip.address.add({
       address: "10.0.0.1/24",
       interface: "ether1",
     });
-  }
-);
+  },
+});
 
 // Confirm the change is working
 await handle.confirm();
