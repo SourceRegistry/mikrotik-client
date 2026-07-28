@@ -161,6 +161,14 @@ async function applyRevertPatch(
  * 2. Remove the revert scheduler.
  * 3. Delete the backup file.
  *
+ * **Known limitation**: RouterOS's `/export` omits entries left at their
+ * default value. If `fn()` changes something that was previously at its
+ * default (e.g. enabling a disabled `/ip service` entry), the "before"
+ * snapshot never captured that entity at all, so the revert can't diff it
+ * back to its original state — that specific change is silently left out
+ * of the revert patch rather than reverted incorrectly. Everything else
+ * `fn()` touched still reverts normally.
+ *
  * @example
  * ```ts
  * import { commitConfirm } from '@sourceregistry/mikrotik-client/safety';

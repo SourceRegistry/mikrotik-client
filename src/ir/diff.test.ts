@@ -503,6 +503,26 @@ describe("applyPatch", () => {
     expect(result.failed).toHaveLength(0);
   });
 
+  it("never synthesizes create/delete for a `set` block missing from one snapshot", () => {
+    // RouterOS's /export omits entries left at their default value — an
+    // untouched /ip service entry (or any singleton like /system identity)
+    // simply won't appear in the export at all. If a property is then
+    // changed away from default, only the "after" snapshot mentions it,
+    // making diff() see "exists in current, absent in desired" and
+    // (before this fix) emit a `delete` op — which for /ip service
+    // rendered as `/ip service remove [find name=api]`, not a real
+    // command (service entries can't be removed). Found live: a scheduled
+    // revert built exactly this and silently failed, leaving the device
+    // locked out over the API port with no way for the scheduler to fix it.
+    const beforeConfig = parseExport(""); // "api" was never mentioned — at default
+    const afterConfig = parseExport("/ip service\nset api disabled=yes\n");
+
+    const revertPatch = diff(afterConfig, beforeConfig);
+    expect(revertPatch.delete).toHaveLength(0);
+    expect(revertPatch.create).toHaveLength(0);
+    expect(renderPatch(revertPatch)).toBe("");
+  });
+
   it("end-to-end: diffing real /ip service export text produces a targeted revert script", () => {
     // Regression for the actual failure found live: a scheduled revert with
     // an empty on-event because the bare "api"/"telnet" identifiers were

@@ -279,6 +279,15 @@ function convertToFindStrings(block: IRResourceBlock): string[] {
  * and `delete[]` arrays that describe the minimum changes to transform
  * `current` into `desired`.
  *
+ * **Known limitation**: RouterOS's `/export` omits entries left at their
+ * default value, so a `set`-command block (one addressed via `[find ...]`
+ * or a bare name, e.g. `/ip service`, `/system identity`) that appears in
+ * only one snapshot is never turned into `create`/`delete` — there's often
+ * no real `/add` or `/remove` for such entities anyway. This means a
+ * property whose *original* value was never captured because it started
+ * out at default can't be diffed back to that original value; the change
+ * is silently omitted from the patch rather than reverted incorrectly.
+ *
  * @param current - The current (live) configuration.
  * @param desired - The desired (target) configuration.
  * @returns A structured patch describing the changes.
@@ -307,7 +316,17 @@ export function diff(current: RouterOSConfig, desired: RouterOSConfig): Patch {
       const matching = currentBlocks.find((cb) => getResourceKey(cb) === key);
 
       if (!matching) {
-        result.create.push({ op: "create", block: db });
+        // A `set` block always addresses a pre-existing entity — RouterOS's
+        // `[find ...]`/bare-name selector syntax only makes sense against
+        // something that already exists, unlike `add`. If it has no match
+        // in the other snapshot, that's from RouterOS's export omitting
+        // entries left at default values (e.g. an untouched /ip service
+        // entry), not a genuinely new resource — there's often no `/add`
+        // for it anyway (you can't add a new /ip service). Skip rather
+        // than synthesize an invalid create.
+        if (db.command !== "set") {
+          result.create.push({ op: "create", block: db });
+        }
       } else {
         // Check for property changes
         const changes = diffProperties(matching, db);
@@ -327,7 +346,14 @@ export function diff(current: RouterOSConfig, desired: RouterOSConfig): Patch {
     // Only count as delete if this key is NOT in desired
     if (!desiredIndex.has(key)) {
       for (const cb of currentBlocks) {
-        result.delete.push({ op: "delete", block: cb });
+        // Same reasoning as the create side: a `set` block references a
+        // pre-existing entity that RouterOS's export just didn't mention
+        // in the other snapshot (left at default) — not something to
+        // `/remove`. Many such resources (e.g. /ip service) can't be
+        // removed via the API at all.
+        if (cb.command !== "set") {
+          result.delete.push({ op: "delete", block: cb });
+        }
       }
     }
   }
