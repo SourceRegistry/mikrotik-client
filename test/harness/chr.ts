@@ -195,13 +195,21 @@ export async function spinCHR(opts: SpinChROptions = {}): Promise<TestDevice> {
   const readyTimeout = opts.readyTimeoutMs ?? 60_000;
   const password = opts.password ?? "";
 
-  // Build docker run command
+  // Build docker run command.
+  // CHR images run RouterOS as a QEMU/KVM guest inside the container, which
+  // needs real network capabilities (creating interfaces, RTNETLINK) that a
+  // default container doesn't have. Without --privileged, some Docker
+  // setups (confirmed: Docker Desktop on WSL2) let the container start and
+  // briefly bind the API port before RouterOS's own boot fails on a
+  // permission error and the container exits — so a naive TCP-readiness
+  // check can appear to succeed right before everything falls over.
   const runArgs = [
     "run",
     "--name",
     name,
     "--rm", // auto-remove on exit
     "-d", // detached
+    "--privileged",
   ];
 
   // Port mapping: publish container 8728 (API) to host port
