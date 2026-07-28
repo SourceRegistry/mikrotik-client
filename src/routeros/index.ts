@@ -344,7 +344,7 @@ export class RouterOSClient implements DeviceTransport {
     this.wireguard = helpers.wireguard;
     this.ppp = helpers.ppp;
     this.routing = helpers.routing;
-    if (!this.options.port) this.options.port = this.options.tls ? 8729 : 8729;
+    if (!this.options.port) this.options.port = this.options.tls ? 8729 : 8728;
   }
 
   async connect(): Promise<this> {
@@ -362,7 +362,10 @@ export class RouterOSClient implements DeviceTransport {
         socket.setKeepAlive(this.options.keepAlive ?? true);
         socket.on("data", (chunk: Buffer) => {
           for (const sentence of this.decoder.push(chunk)) {
-            void this.handleSentence(sentence);
+            this.handleSentence(sentence).catch((error: unknown) => {
+              this.rejectAll(error);
+              socket.destroy();
+            });
           }
         });
         socket.on("error", (error) => {

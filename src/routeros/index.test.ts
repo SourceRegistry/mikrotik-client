@@ -529,6 +529,12 @@ function createMockServer() {
           continue;
         }
 
+        if (command === "/test/malformed/print") {
+          // Simulate a corrupted/unexpected reply word from the device.
+          socket.write(encodeSentence(["!bogus", `.tag=${tag}`]));
+          continue;
+        }
+
         if (command === "/cancel" && getSentenceValue(sentence, "=", "tag") === listenTag) {
           socket.write(
             encodeSentence(["!trap", "=category=2", "=message=interrupted", `.tag=${listenTag}`])
@@ -559,6 +565,37 @@ describe("RouterOSClient", () => {
       )
     );
     servers.clear();
+  });
+
+  it("defaults to port 8728 for plaintext and 8729 for tls", () => {
+    const plain = new RouterOSClient({ host: "127.0.0.1", username: "admin" });
+    expect(plain.options.port).toBe(8728);
+
+    const tls = new RouterOSClient({ host: "127.0.0.1", username: "admin", tls: true });
+    expect(tls.options.port).toBe(8729);
+  });
+
+  it("rejects the pending request instead of crashing on a malformed reply", async () => {
+    const server = createMockServer();
+    servers.add(server);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
+    const address = server.address();
+    if (!address || typeof address === "string") {
+      throw new Error("Failed to start mock RouterOS server.");
+    }
+
+    const client = new RouterOSClient({
+      host: "127.0.0.1",
+      port: address.port,
+      username: "admin",
+      password: "",
+    });
+
+    await expect(client.execute("/test/malformed/print")).rejects.toThrow(
+      /Unsupported RouterOS reply word/
+    );
+
+    await client.close();
   });
 
   it("logs in and executes a print command through the dynamic api", async () => {

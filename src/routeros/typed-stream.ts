@@ -217,7 +217,9 @@ export class TypedStream<T> extends EventEmitter implements AsyncIterable<TypedE
 
     // Wire up the underlying stream
     stream.on("reply", (reply: RouterOSReply) => {
-      void this.handleReply(reply);
+      this.handleReply(reply).catch((error: unknown) => {
+        this.finish(error);
+      });
     });
 
     stream.on("close", (error?: unknown) => {
