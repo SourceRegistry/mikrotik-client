@@ -1,3 +1,10 @@
+# [1.0.0-alpha.9](https://github.com/SourceRegistry/mikrotik-client/compare/v1.0.0-alpha.8...v1.0.0-alpha.9) (2026-07-28)
+
+
+### Bug Fixes
+
+* **ir:** diff() synthesized invalid create/remove for entries omitted from one export ([485003c](https://github.com/SourceRegistry/mikrotik-client/commit/485003ccfa05681b6c0246705a79f091cbef0985))
+
 # [1.0.0-alpha.8](https://github.com/SourceRegistry/mikrotik-client/compare/v1.0.0-alpha.7...v1.0.0-alpha.8) (2026-07-28)
 
 
