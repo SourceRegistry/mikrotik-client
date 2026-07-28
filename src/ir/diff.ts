@@ -381,13 +381,15 @@ function renderPatchLine(op: PatchItem): string {
     return `${op.block.path} remove${findClause}`;
   }
 
-  // update
-  const findPropNames = new Set((op.block.findQuery ?? []).map((p) => p.name));
+  // update — only the properties that actually changed. RouterOS rejects
+  // re-setting some properties even to their current value (e.g. `vrf`
+  // errors with "this is configured elsewhere"), so resending every
+  // property on the block — most of which didn't change — isn't just
+  // wasteful, it can make an otherwise-valid update fail outright.
   const parts = [op.block.path, "set" + findClause];
-  for (const prop of op.block.properties) {
-    if (findPropNames.has(prop.name)) continue;
-    const value = needsQuoting(prop.value) ? quoteValue(prop.value) : prop.value;
-    parts.push(`${prop.name}=${value}`);
+  for (const change of op.changes) {
+    const value = needsQuoting(change.newValue) ? quoteValue(change.newValue) : change.newValue;
+    parts.push(`${change.name}=${value}`);
   }
   return parts.join(" ");
 }
@@ -467,6 +469,15 @@ async function resolveTarget(
 ): Promise<ResolveResult> {
   if (findQueries.length === 0) return { kind: "not-found" };
   const queries = findQueries.map((q) => (q.startsWith("?") ? q : `?${q}`));
+  // Exclude dynamic (runtime-generated) entries. Some menus surface them
+  // under the same print listing and identifying properties as the real,
+  // user-configured entry — found live on /ip/service: an active API
+  // connection shows up as its own dynamic "api" row alongside the real
+  // static service definition, so `?name=api` alone matched both and a
+  // `numbers=id1,id2` update failed outright on the connection row.
+  // Harmless on menus with no `dynamic` property (e.g. /system identity)
+  // — RouterOS just ignores the filter rather than erroring.
+  queries.push("?dynamic=false");
   const printOpts: Record<string, unknown> = {
     attributes: { ".proplist": [".id"] },
     queries,
@@ -551,15 +562,14 @@ export async function applyPatch(
         continue;
       }
 
-      const attrs = convertToSetAttributes(op.block);
-
-      // Build attributes excluding find properties (those are used for selection)
-      const findPropNames = new Set((op.block.findQuery ?? []).map((p) => p.name));
+      // Only send the properties that actually changed. RouterOS rejects
+      // re-setting some properties even to their current value (e.g. `vrf`
+      // errors with "this is configured elsewhere"), so resending every
+      // property on the block — most of which didn't change — isn't just
+      // wasteful, it can make an otherwise-valid update fail outright.
       const setAttrs: Record<string, string> = {};
-      for (const [name, value] of Object.entries(attrs)) {
-        if (!findPropNames.has(name)) {
-          setAttrs[name] = value;
-        }
+      for (const change of op.changes) {
+        setAttrs[change.name] = change.newValue;
       }
       if (target.kind === "ids") {
         setAttrs.numbers = target.ids.join(",");

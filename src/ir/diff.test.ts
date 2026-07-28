@@ -278,6 +278,59 @@ describe("applyPatch", () => {
     );
   });
 
+  it("update only sends properties that actually changed, not the whole block", async () => {
+    // RouterOS rejects re-setting some properties even to their current
+    // value (e.g. `vrf` fails with "this is configured elsewhere"), so
+    // resending every property on the block — not just the ones that
+    // differ — can make an otherwise-valid update fail outright. Found
+    // live: a curated verbose /ip service capture carries every property
+    // (address, port, vrf, ...), and only `disabled` had actually changed.
+    const mockTransport: Partial<DeviceTransport> = {
+      execute: vi.fn(async (command: string) => {
+        if (command === "/ip/service/print") {
+          return { tag: "t", records: [{ ".id": "*9" }], traps: [] };
+        }
+        return { tag: "t", records: [], traps: [] };
+      }),
+    };
+    const transport = mockTransport as DeviceTransport;
+
+    const current = config([
+      resource(
+        "/ip service",
+        "set",
+        [
+          { name: "disabled", value: "yes" },
+          { name: "port", value: "8728" },
+          { name: "vrf", value: "main" },
+        ],
+        { name: "name", value: "api" }
+      ),
+    ]);
+    const desired = config([
+      resource(
+        "/ip service",
+        "set",
+        [
+          { name: "disabled", value: "no" },
+          { name: "port", value: "8728" },
+          { name: "vrf", value: "main" },
+        ],
+        { name: "name", value: "api" }
+      ),
+    ]);
+    const patch = diff(current, desired);
+    expect(patch.update).toHaveLength(1);
+    expect(patch.update[0]?.changes).toHaveLength(1);
+
+    await applyPatch(transport, patch, {});
+
+    const setCall = (transport.execute as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c) => c[0] === "/ip/service/set"
+    );
+    expect(setCall![1].attributes).toEqual({ disabled: "no", numbers: "*9" });
+  });
+
   it("applies delete operations via transport", async () => {
     // Same resolve-then-mutate requirement as /set applies to /remove.
     const mockTransport: Partial<DeviceTransport> = {
@@ -368,6 +421,48 @@ describe("applyPatch", () => {
     expect(result.applied).toBe(0);
     expect(result.skipped).toBe(1);
     expect(result.failed).toHaveLength(0);
+  });
+
+  it("excludes dynamic entries when resolving a target to update", async () => {
+    // Found live: /ip/service/print surfaces an active API connection as
+    // its own dynamic "api" row alongside the real static service
+    // definition — both matched `?name=api`, and applyPatch tried to set
+    // both via `numbers=id1,id2` in one call, which failed outright
+    // because the connection row can't be modified that way.
+    const mockTransport: Partial<DeviceTransport> = {
+      execute: vi.fn(async (command: string, options?: { queries?: readonly string[] }) => {
+        if (command === "/ip/service/print") {
+          expect(options?.queries).toContain("?dynamic=false");
+          // Simulate the device already filtering the dynamic connection
+          // row out — only the real static entry matches.
+          return { tag: "t", records: [{ ".id": "*7" }], traps: [] };
+        }
+        return { tag: "t", records: [], traps: [] };
+      }),
+    };
+    const transport = mockTransport as DeviceTransport;
+
+    const current = config([
+      resource("/ip service", "set", [{ name: "disabled", value: "yes" }], {
+        name: "name",
+        value: "api",
+      }),
+    ]);
+    const desired = config([
+      resource("/ip service", "set", [{ name: "disabled", value: "no" }], {
+        name: "name",
+        value: "api",
+      }),
+    ]);
+    const patch = diff(current, desired);
+
+    const result = await applyPatch(transport, patch, {});
+    expect(result.applied).toBe(1);
+    expect(result.failed).toHaveLength(0);
+    const setCall = (transport.execute as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c) => c[0] === "/ip/service/set"
+    );
+    expect(setCall![1].attributes.numbers).toBe("*7");
   });
 
   it("handles abort signal during update operations", async () => {
@@ -539,5 +634,20 @@ describe("applyPatch", () => {
     expect(script).toContain("[find name=api]");
     expect(script).toContain("disabled=no");
     expect(script).not.toContain("telnet");
+  });
+
+  it("renderPatch: update line only includes properties that actually changed", () => {
+    // Same "this is configured elsewhere" failure mode as the applyPatch
+    // regression above, but for the on-event script text that runs
+    // without a live client — a scheduled revert is exactly where this
+    // needs to hold, since there's no one around to retry it.
+    const before = parseExport('/ip service\nset api disabled=no port=8728 vrf=main address=""\n');
+    const after = parseExport('/ip service\nset api disabled=yes port=8728 vrf=main address=""\n');
+
+    const revertPatch = diff(after, before);
+    expect(revertPatch.update[0]?.changes).toHaveLength(1);
+
+    const script = renderPatch(revertPatch);
+    expect(script).toBe("/ip service set [find name=api] disabled=no\n");
   });
 });

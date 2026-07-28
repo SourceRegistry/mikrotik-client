@@ -1,7 +1,36 @@
 import type { DeviceTransport } from "../routeros/transport";
 import type { RouterOSCommandOptions } from "../routeros/index";
 import { saveBackup, removeBackup, type BackupOptions } from "./backup";
-import { parseExport, diff, renderPatch, applyPatch, type Patch } from "../ir";
+import {
+  parseExport,
+  diff,
+  renderPatch,
+  applyPatch,
+  isResourceBlock,
+  type Patch,
+  type RouterOSConfig,
+} from "../ir";
+
+/**
+ * Menus whose `/export` a full snapshot would otherwise omit when left at
+ * their default value (RouterOS only exports non-default state). These are
+ * all fixed-cardinality, `set`-only menus — entries can't be added or
+ * removed, so an omitted-then-changed entry is exactly the scenario that
+ * previously produced an unusable (or invalid) revert. They're small
+ * enough that scoping `export verbose` to just the menu (via
+ * `<path>/export`, not the unsupported `/export path=...`) keeps every
+ * capture well under RouterOS's file-content read-back size limit.
+ *
+ * `/ip service` is the headline case — it's what controls whether the api,
+ * ssh, www, and winbox ports stay reachable at all, so a change to an
+ * untouched entry there is the single most likely way to self-lock-out.
+ */
+const ALWAYS_CAPTURE_PATHS = ["/ip service", "/system identity", "/system clock", "/system note"];
+
+/** Convert an IR-style space-separated path to an API/command slash path. */
+function toCommandPath(path: string): string {
+  return path.trim().replace(/\s+/g, "/");
+}
 
 /**
  * Build RouterOSCommandOptions with conditional inclusion of optional fields.
@@ -108,6 +137,120 @@ async function readFileContents(
 }
 
 /**
+ * Read a throwaway `.rsc` file's contents and remove it, resolving `.id`
+ * first rather than removing by `numbers=<name>.rsc`. Found live: removing
+ * a just-created file by name reports success ("!done") but the file is
+ * still there moments later — whatever RouterOS does internally to index a
+ * fresh file by name apparently hasn't finished by the time a rapid
+ * create → read → remove sequence gets to the remove step. Removing by
+ * `.id` (resolved in the same print call that reads the contents) has no
+ * such lag.
+ */
+async function readAndRemoveFile(
+  transport: DeviceTransport,
+  fileNameNoExt: string,
+  signal: AbortSignal | undefined,
+  timeoutMs: number | undefined
+): Promise<string> {
+  let fileId: string | undefined;
+  let contents = "";
+  try {
+    const result = await transport.execute(
+      "/file/print",
+      buildOpts(
+        {
+          attributes: { ".proplist": ["contents", ".id"] },
+          queries: [`?name=${fileNameNoExt}.rsc`],
+        },
+        signal,
+        timeoutMs
+      )
+    );
+    fileId = result.records[0]?.[".id"];
+    contents = result.records[0]?.contents ?? "";
+  } catch {
+    // fall through — still attempt removal by name below
+  }
+  try {
+    await transport.execute(
+      "/file/remove",
+      buildOpts({ attributes: { numbers: fileId ?? `${fileNameNoExt}.rsc` } }, signal, timeoutMs)
+    );
+  } catch {
+    // best-effort — throwaway file
+  }
+  return contents;
+}
+
+/**
+ * Capture a full, verbose `export` of a single menu (including entries at
+ * their default value) and parse it. Best-effort — returns an empty config
+ * if the menu doesn't exist on this device/RouterOS build, rather than
+ * failing the whole snapshot over one optional path.
+ */
+async function captureMenuVerbose(
+  transport: DeviceTransport,
+  path: string,
+  fileNameNoExt: string,
+  signal: AbortSignal | undefined,
+  timeoutMs: number | undefined
+): Promise<RouterOSConfig> {
+  try {
+    await transport.execute(
+      `${toCommandPath(path)}/export`,
+      buildOpts({ attributes: { verbose: null, file: fileNameNoExt } }, signal, timeoutMs)
+    );
+  } catch {
+    // Menu doesn't exist on this device/RouterOS build, or export failed —
+    // nothing was written, so there's nothing to clean up either.
+    return { items: [] };
+  }
+
+  const text = await readAndRemoveFile(transport, fileNameNoExt, signal, timeoutMs);
+  return parseExport(text);
+}
+
+/**
+ * Capture a config snapshot: the normal full-tree export (reliably catches
+ * additions/removals of genuinely add/removable resources) merged with a
+ * verbose, per-menu capture of {@link ALWAYS_CAPTURE_PATHS} (which the
+ * full-tree export would silently omit if left at default). The curated
+ * captures win over anything the plain export happened to also mention for
+ * those same paths, since they're guaranteed complete.
+ */
+async function captureSnapshot(
+  transport: DeviceTransport,
+  plainConfig: RouterOSConfig,
+  txid: string,
+  tag: string,
+  signal: AbortSignal | undefined,
+  timeoutMs: number | undefined
+): Promise<RouterOSConfig> {
+  // Sequential, not Promise.all: concurrent export/file-read/file-remove
+  // triples over one API session were unreliable in practice — some of the
+  // temporary files never got cleaned up (the device doesn't reliably
+  // handle overlapping file operations on the same connection).
+  const curatedItems: RouterOSConfig["items"] = [];
+  for (let i = 0; i < ALWAYS_CAPTURE_PATHS.length; i++) {
+    const menuConfig = await captureMenuVerbose(
+      transport,
+      ALWAYS_CAPTURE_PATHS[i]!,
+      `cc-${txid}-${tag}-${i}`,
+      signal,
+      timeoutMs
+    );
+    curatedItems.push(...menuConfig.items);
+  }
+
+  const isCuratedPath = (path: string): boolean => ALWAYS_CAPTURE_PATHS.includes(path);
+  const remainingPlainItems = plainConfig.items.filter(
+    (item) => !isResourceBlock(item) || !isCuratedPath(item.path)
+  );
+
+  return { ...plainConfig, items: [...remainingPlainItems, ...curatedItems] };
+}
+
+/**
  * Apply a revert {@link Patch} and throw if any operation failed.
  * `applyPatch` never throws on its own — it collects failures in the
  * result — so callers that need rollback failures to surface must check.
@@ -137,10 +280,17 @@ async function applyRevertPatch(
  * ### How it works:
  *
  * 1. Save a script export (`/export file=pre-${txid}`) — kept on the device
- *    for the duration of the window as a manual last-resort artifact, and
- *    parsed into IR as the "before" snapshot.
+ *    for the duration of the window as a manual last-resort artifact — and
+ *    parse it as the "before" snapshot, topped up with a verbose per-menu
+ *    capture of `/ip service`, `/system identity`, `/system clock`, and
+ *    `/system note` (see `ALWAYS_CAPTURE_PATHS`), since RouterOS's export
+ *    omits entries left at their default value and these are exactly the
+ *    fixed-cardinality menus most likely to matter for a lockout (`/ip
+ *    service` controls whether the api/ssh/www/winbox ports stay reachable
+ *    at all).
  * 2. Run `fn(transport)` to apply the mutation, then take a second,
- *    throwaway export and parse it as the "after" snapshot.
+ *    throwaway export (plus the same verbose top-up) and parse it as the
+ *    "after" snapshot.
  * 3. Diff `after` → `before` and render the result as a RouterOS script —
  *    this is the *targeted* set of `add`/`set`/`remove` commands needed to
  *    undo exactly what `fn()` changed (unlike replaying a raw `/export`
@@ -162,12 +312,13 @@ async function applyRevertPatch(
  * 3. Delete the backup file.
  *
  * **Known limitation**: RouterOS's `/export` omits entries left at their
- * default value. If `fn()` changes something that was previously at its
- * default (e.g. enabling a disabled `/ip service` entry), the "before"
- * snapshot never captured that entity at all, so the revert can't diff it
- * back to its original state — that specific change is silently left out
- * of the revert patch rather than reverted incorrectly. Everything else
- * `fn()` touched still reverts normally.
+ * default value. The verbose top-up in step 1 covers the menus in
+ * `ALWAYS_CAPTURE_PATHS`, but for any *other* fixed-cardinality, `set`-only
+ * menu, if `fn()` changes something that was previously at its default,
+ * the "before" snapshot never captured that entity at all, so the revert
+ * can't diff it back to its original state — that specific change is
+ * silently left out of the revert patch rather than reverted incorrectly.
+ * Everything else `fn()` touched still reverts normally.
  *
  * @example
  * ```ts
@@ -231,10 +382,20 @@ export async function commitConfirm(opts: CommitConfirmOptions): Promise<CommitC
   const schedulerName = `revert-${txid}`;
 
   // Step 2: Save export backup (kept as a manual fallback for the whole
-  // window) and parse it as the "before" snapshot.
+  // window) and parse it as the "before" snapshot, topped up with a
+  // verbose per-menu capture of ALWAYS_CAPTURE_PATHS so entries left at
+  // default (which the plain export omits) are still known.
   await saveBackup(transport, backupFile, buildBackupOpts(signal, timeoutMs));
-  const beforeConfig = parseExport(
+  const plainBeforeConfig = parseExport(
     await readFileContents(transport, backupFile, signal, timeoutMs)
+  );
+  const beforeConfig = await captureSnapshot(
+    transport,
+    plainBeforeConfig,
+    txid,
+    "before",
+    signal,
+    timeoutMs
   );
 
   // Step 3: Run the mutation function — clean up backup on failure
@@ -253,12 +414,17 @@ export async function commitConfirm(opts: CommitConfirmOptions): Promise<CommitC
   // the minimal set of add/set/remove commands that undo exactly what fn()
   // changed. This is what actually gets scheduled and what rollback() applies.
   await saveBackup(transport, afterFile, buildBackupOpts(signal, timeoutMs));
-  const afterConfig = parseExport(await readFileContents(transport, afterFile, signal, timeoutMs));
-  try {
-    await removeBackup(transport, afterFile, buildBackupOpts(signal, timeoutMs));
-  } catch {
-    // best-effort — throwaway file, not load-bearing
-  }
+  const plainAfterConfig = parseExport(
+    await readAndRemoveFile(transport, afterFile, signal, timeoutMs)
+  );
+  const afterConfig = await captureSnapshot(
+    transport,
+    plainAfterConfig,
+    txid,
+    "after",
+    signal,
+    timeoutMs
+  );
   const revertPatch = diff(afterConfig, beforeConfig);
 
   // Step 4: Schedule auto-revert
