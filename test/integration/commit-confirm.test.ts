@@ -36,7 +36,7 @@ run("integration: commitConfirm", () => {
     // booted. An early attempt fails with ECONNRESET/"connection closed".
     // Retry a real command until it succeeds instead of trusting
     // TCP-level readiness alone.
-    const deadline = Date.now() + 45_000;
+    const deadline = Date.now() + 90_000;
     let lastError: unknown;
     while (Date.now() < deadline) {
       try {
@@ -49,7 +49,7 @@ run("integration: commitConfirm", () => {
       }
     }
     if (lastError) throw lastError;
-  }, 60_000);
+  }, 120_000);
 
   afterAll(async () => {
     await client.close();
