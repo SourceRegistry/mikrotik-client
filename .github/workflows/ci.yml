@@ -57,8 +57,25 @@ jobs:
       - name: Pull CHR image
         run: docker pull mikrotik/chr:${{ matrix.chr-version }}
         continue-on-error: true
-      - name: Run integration tests
-        run: npm test -- test/integration
+      # KVM-independent: only checks the API port comes up, never logs in.
+      # See test-integration (full) below for why the login-dependent
+      # suite is not run here.
+      - name: Run integration tests (smoke)
+        run: npm test -- test/integration/basic.test.ts
+        env:
+          MIKROTIK_CHR_IMAGE: mikrotik/chr:${{ matrix.chr-version }}
+        timeout-minutes: 10
+      # Requires an actual RouterOS login, which needs the CHR guest to
+      # finish booting. CHR runs RouterOS under QEMU/KVM, and standard
+      # GitHub-hosted runners (ubuntu-latest) don't expose /dev/kvm, so
+      # without hardware acceleration the guest never becomes login-ready
+      # within any practical CI budget. Restricted to manual dispatch so
+      # it doesn't block every push/PR; run it against a KVM-capable
+      # machine (self-hosted runner, or locally) when you need this
+      # coverage.
+      - name: Run integration tests (full, requires KVM)
+        if: github.event_name == 'workflow_dispatch'
+        run: npm test -- test/integration/commit-confirm.test.ts
         env:
           MIKROTIK_CHR_IMAGE: mikrotik/chr:${{ matrix.chr-version }}
         timeout-minutes: 10
